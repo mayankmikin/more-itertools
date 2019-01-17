@@ -41,6 +41,9 @@ class RichIterator(six.Iterator):
     def compress(self, selectors):
         return self._wrap(it.compress, selectors)
 
+    def groupby(self, key=None):
+        return self._wrap(it.groupby, key)
+
     def _wrap(self, func, *args, **kwargs):
         return self.__class__(func(self._it, *args, **kwargs))
 
