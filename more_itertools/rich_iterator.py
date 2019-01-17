@@ -38,6 +38,9 @@ class RichIterator(six.Iterator):
     def chain(self, *iterables):
         return self._wrap(it.chain, *iterables)
 
+    def compress(self, selectors):
+        return self._wrap(it.compress, selectors)
+
     def _wrap(self, func, *args, **kwargs):
         return self.__class__(func(self._it, *args, **kwargs))
 

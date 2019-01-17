@@ -66,3 +66,7 @@ class RichIteratorTests(unittest.TestCase):
         for ri in self.rich_iters:
             self.assertEqual(list(ri.chain('DEF')),
                              [1, 2, 3, 4, 5, 'D', 'E', 'F'])
+
+    def test_compress(self):
+        for ri in self.rich_iters:
+            self.assertEqual(list(ri.compress([1, 0, 1, 1, 0])), [1, 3, 4])
