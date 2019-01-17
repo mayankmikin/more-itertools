@@ -80,6 +80,18 @@ class RichIteratorTests(unittest.TestCase):
                 [(k, ''.join(g)) for k, g in ri.groupby(lambda x: x > 'B')],
                 [(False, 'AAAABBB'), (True, 'CCD'), (False, 'AABBBB')])
 
+    def test_map(self):
+        for ri in self.rich_iters():
+            self.assertEqual(list(ri.map(operator.neg)), [-1, -2, -3, -4, -5])
+        for ri in self.rich_iters():
+            self.assertEqual(list(ri.map(pow, reversed(range(1, 6)))),
+                             [1, 16, 27, 16, 5])
+
+    def test_stapmap(self):
+        iterable = list(zip(range(1, 6), reversed(range(1, 6))))
+        for ri in self.rich_iters(iterable):
+            self.assertEqual(list(ri.starmap(pow)), [1, 16, 27, 16, 5])
+
     def test_tee(self):
         for ri in self.rich_iters():
             it1, it2 = ri.tee()

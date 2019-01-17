@@ -1,5 +1,6 @@
 import itertools as it
 import operator
+from functools import partial
 
 import six
 
@@ -44,6 +45,12 @@ class RichIterator(six.Iterator):
     def groupby(self, key=None):
         return self._wrap(it.groupby, key)
 
+    def map(self, func, *iterables):
+        return self._wrap(partial(_map, func), *iterables)
+
+    def starmap(self, func):
+        return self._wrap(partial(it.starmap, func))
+
     def tee(self, n=2):
         return self._wrap(it.tee, n)
 
@@ -58,5 +65,6 @@ class RichIterator(six.Iterator):
 
 
 _accumulate = getattr(it, 'accumulate', recipes.accumulate)
+_map = six.moves.map
 _zip = six.moves.zip
 _zip_longest = six.moves.zip_longest
