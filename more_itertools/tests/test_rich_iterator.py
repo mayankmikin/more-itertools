@@ -79,3 +79,14 @@ class RichIteratorTests(unittest.TestCase):
             self.assertEqual(
                 [(k, ''.join(g)) for k, g in ri.groupby(lambda x: x > 'B')],
                 [(False, 'AAAABBB'), (True, 'CCD'), (False, 'AABBBB')])
+
+    def test_tee(self):
+        for ri in self.rich_iters():
+            it1, it2 = ri.tee()
+            self.assertEqual(list(it1), [1, 2, 3, 4, 5])
+            self.assertEqual(list(it2), [1, 2, 3, 4, 5])
+        for ri in self.rich_iters():
+            it1, it2, it3 = ri.tee(3)
+            self.assertEqual(list(it1), [1, 2, 3, 4, 5])
+            self.assertEqual(list(it2), [1, 2, 3, 4, 5])
+            self.assertEqual(list(it3), [1, 2, 3, 4, 5])

@@ -44,8 +44,11 @@ class RichIterator(six.Iterator):
     def groupby(self, key=None):
         return self._wrap(it.groupby, key)
 
-    def _wrap(self, func, *args, **kwargs):
-        return self.__class__(func(self._it, *args, **kwargs))
+    def tee(self, n=2):
+        return self._wrap(it.tee, n)
+
+    def _wrap(self, func, *args):
+        return self.__class__(func(self._it, *args))
 
 
 _accumulate = getattr(it, 'accumulate', recipes.accumulate)
