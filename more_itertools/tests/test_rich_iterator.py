@@ -69,6 +69,10 @@ class RichIteratorTests(unittest.TestCase):
         for ri in self.rich_iters():
             self.assertEqual(list(ri.compress([1, 0, 1, 1, 0])), [1, 3, 4])
 
+    def test_dropwhile(self):
+        for ri in self.rich_iters():
+            self.assertEqual(list(ri.dropwhile(lambda x: x < 3)), [3, 4, 5])
+
     def test_filter(self):
         for ri in self.rich_iters():
             self.assertEqual(list(ri.filter(lambda x: x % 2)), [1, 3, 5])
@@ -99,6 +103,10 @@ class RichIteratorTests(unittest.TestCase):
         iterable = list(zip(range(1, 6), reversed(range(1, 6))))
         for ri in self.rich_iters(iterable):
             self.assertEqual(list(ri.starmap(pow)), [1, 16, 27, 16, 5])
+
+    def test_takewhile(self):
+        for ri in self.rich_iters():
+            self.assertEqual(list(ri.takewhile(lambda x: x < 3)), [1, 2])
 
     def test_tee(self):
         for ri in self.rich_iters():

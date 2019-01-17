@@ -41,6 +41,9 @@ class RichIterator(six.Iterator):
     def compress(self, selectors):
         return self._wrap(it.compress, selectors)
 
+    def dropwhile(self, predicate):
+        return self._wrap1(it.dropwhile, predicate)
+
     def filter(self, predicate):
         return self._wrap1(_filter, predicate)
 
@@ -55,6 +58,9 @@ class RichIterator(six.Iterator):
 
     def starmap(self, func):
         return self._wrap1(it.starmap, func)
+
+    def takewhile(self, predicate):
+        return self._wrap1(it.takewhile, predicate)
 
     def tee(self, n=2):
         return self._wrap(it.tee, n)
