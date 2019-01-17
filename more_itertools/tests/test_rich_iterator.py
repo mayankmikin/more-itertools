@@ -69,6 +69,14 @@ class RichIteratorTests(unittest.TestCase):
         for ri in self.rich_iters():
             self.assertEqual(list(ri.compress([1, 0, 1, 1, 0])), [1, 3, 4])
 
+    def test_filter(self):
+        for ri in self.rich_iters():
+            self.assertEqual(list(ri.filter(lambda x: x % 2)), [1, 3, 5])
+
+    def test_filterfalse(self):
+        for ri in self.rich_iters():
+            self.assertEqual(list(ri.filterfalse(lambda x: x % 2)), [2, 4])
+
     def test_groupby(self):
         for ri in self.rich_iters('AAAABBBCCDAABBBB'):
             self.assertEqual([(k, ''.join(g)) for k, g in ri.groupby()],

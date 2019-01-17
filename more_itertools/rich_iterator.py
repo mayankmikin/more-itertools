@@ -1,6 +1,5 @@
 import itertools as it
 import operator
-from functools import partial
 
 import six
 
@@ -42,14 +41,20 @@ class RichIterator(six.Iterator):
     def compress(self, selectors):
         return self._wrap(it.compress, selectors)
 
+    def filter(self, predicate):
+        return self._wrap1(_filter, predicate)
+
+    def filterfalse(self, predicate):
+        return self._wrap1(_filterfalse, predicate)
+
     def groupby(self, key=None):
         return self._wrap(it.groupby, key)
 
     def map(self, func, *iterables):
-        return self._wrap(partial(_map, func), *iterables)
+        return self._wrap1(_map, func, *iterables)
 
     def starmap(self, func):
-        return self._wrap(partial(it.starmap, func))
+        return self._wrap1(it.starmap, func)
 
     def tee(self, n=2):
         return self._wrap(it.tee, n)
@@ -63,8 +68,13 @@ class RichIterator(six.Iterator):
     def _wrap(self, func, *args, **kwargs):
         return self.__class__(func(self._it, *args, **kwargs))
 
+    def _wrap1(self, func, *args, **kwargs):
+        return self.__class__(func(args[0], self._it, *args[1:], **kwargs))
+
 
 _accumulate = getattr(it, 'accumulate', recipes.accumulate)
+_filter = six.moves.filter
+_filterfalse = six.moves.filterfalse
 _map = six.moves.map
 _zip = six.moves.zip
 _zip_longest = six.moves.zip_longest
