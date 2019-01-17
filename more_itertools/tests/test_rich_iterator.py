@@ -90,3 +90,19 @@ class RichIteratorTests(unittest.TestCase):
             self.assertEqual(list(it1), [1, 2, 3, 4, 5])
             self.assertEqual(list(it2), [1, 2, 3, 4, 5])
             self.assertEqual(list(it3), [1, 2, 3, 4, 5])
+
+    def test_zip(self):
+        for ri in self.rich_iters():
+            self.assertEqual(list(ri.zip('xy')), [(1, 'x'), (2, 'y')])
+        for ri in self.rich_iters():
+            self.assertEqual(list(ri.zip('xyz', [True, False])),
+                             [(1, 'x', True), (2, 'y', False)])
+
+    def test_zip_longest(self):
+        for ri in self.rich_iters():
+            self.assertEqual(list(ri.zip_longest('xy', fillvalue='')),
+                             [(1, 'x'), (2, 'y'), (3, ''), (4, ''), (5, '')])
+        for ri in self.rich_iters():
+            self.assertEqual(list(ri.zip_longest('xyz', [True, False])),
+                             [(1, 'x', True), (2, 'y', False), (3, 'z', None),
+                              (4, None, None), (5, None, None)])

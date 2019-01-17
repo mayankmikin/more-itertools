@@ -47,8 +47,16 @@ class RichIterator(six.Iterator):
     def tee(self, n=2):
         return self._wrap(it.tee, n)
 
-    def _wrap(self, func, *args):
-        return self.__class__(func(self._it, *args))
+    def zip(self, *iterables):
+        return self._wrap(_zip, *iterables)
+
+    def zip_longest(self, *iterables, **kwargs):
+        return self._wrap(_zip_longest, *iterables, **kwargs)
+
+    def _wrap(self, func, *args, **kwargs):
+        return self.__class__(func(self._it, *args, **kwargs))
 
 
 _accumulate = getattr(it, 'accumulate', recipes.accumulate)
+_zip = six.moves.zip
+_zip_longest = six.moves.zip_longest
