@@ -1,3 +1,5 @@
+import itertools as it
+
 import six
 
 
@@ -14,3 +16,11 @@ class RichIterator(six.Iterator):
 
     def __next__(self):
         return next(self._it)
+
+    @classmethod
+    def count(cls, start=0, step=1):
+        return cls(it.count(start, step))
+
+    @classmethod
+    def repeat(cls, object, times=None):
+        return cls(it.repeat(object, times))
