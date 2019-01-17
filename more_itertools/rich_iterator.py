@@ -35,6 +35,9 @@ class RichIterator(six.Iterator):
     def accumulate(self, func=operator.add):
         return self._wrap(_accumulate, func)
 
+    def chain(self, *iterables):
+        return self._wrap(it.chain, *iterables)
+
     def _wrap(self, func, *args, **kwargs):
         return self.__class__(func(self._it, *args, **kwargs))
 

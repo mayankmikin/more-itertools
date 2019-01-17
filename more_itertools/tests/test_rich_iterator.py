@@ -61,3 +61,8 @@ class RichIteratorTests(unittest.TestCase):
         for ri in self.rich_iters:
             self.assertEqual(list(ri.accumulate(operator.mul)),
                              [1, 2, 6, 24, 120])
+
+    def test_chain(self):
+        for ri in self.rich_iters:
+            self.assertEqual(list(ri.chain('DEF')),
+                             [1, 2, 3, 4, 5, 'D', 'E', 'F'])
