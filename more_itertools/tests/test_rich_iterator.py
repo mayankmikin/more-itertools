@@ -10,21 +10,20 @@ class RichIteratorTests(unittest.TestCase):
     """Tests for ``RichIterator()``"""
 
     def setUp(self):
-        rng = range(10)
-        self.iterables = [
+        rng = range(5)
+        self.rich_iters = list(map(mi.RichIterator, [
             rng,
             list(rng),
             iter(rng),
             iter(list(rng)),
-        ]
+        ]))
 
     def test_iteration(self):
         """Test basic iteration"""
-        for iterable in self.iterables:
-            ri = mi.RichIterator(iterable)
+        for ri in self.rich_iters:
             self.assertEqual(next(ri), 0)
             self.assertEqual(next(ri), 1)
-            self.assertEqual(list(ri), list(range(2, 10)))
+            self.assertEqual(list(ri), [2, 3, 4])
             self.assertRaises(StopIteration, next, ri)
             self.assertEqual(list(ri), [])
 
@@ -47,3 +46,8 @@ class RichIteratorTests(unittest.TestCase):
 
         ri = mi.RichIterator.repeat(10)
         self.assertEqual(list(it.islice(ri, 5)), [10, 10, 10, 10, 10])
+
+    def test_cycle(self):
+        for ri in self.rich_iters:
+            self.assertEqual(list(it.islice(ri.cycle(), 12)),
+                             [0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 0, 1])

@@ -4,7 +4,7 @@ import six
 
 
 class RichIterator(six.Iterator):
-    """Wrapper of iterables exposing several convenience methods and operators."""
+    """Iterable wrapper exposing several convenience methods and operators."""
 
     __slots__ = ('_it',)
 
@@ -23,4 +23,11 @@ class RichIterator(six.Iterator):
 
     @classmethod
     def repeat(cls, object, times=None):
-        return cls(it.repeat(object, times))
+        return cls(it.repeat(object, times) if times is not None else
+                   it.repeat(object))
+
+    def cycle(self):
+        return self._wrap(it.cycle)
+
+    def _wrap(self, func, *args, **kwargs):
+        return self.__class__(func(self._it, *args, **kwargs))
