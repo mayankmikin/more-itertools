@@ -28,6 +28,20 @@ class RichIteratorTests(unittest.TestCase):
             self.assertRaises(StopIteration, next, ri)
             self.assertEqual(list(ri), [])
 
+    def test_slicing(self):
+        for ri in self.rich_iters():
+            self.assertEqual(list(ri[:]), [1, 2, 3, 4, 5])
+        for ri in self.rich_iters():
+            self.assertEqual(list(ri[:2]), [1, 2])
+        for ri in self.rich_iters():
+            self.assertEqual(list(ri[2:]), [3, 4, 5])
+        for ri in self.rich_iters():
+            self.assertEqual(list(ri[2:4]), [3, 4])
+        for ri in self.rich_iters():
+            self.assertEqual(list(ri[::2]), [1, 3, 5])
+        for ri in self.rich_iters():
+            self.assertEqual(list(ri[1::2]), [2, 4])
+
     def test_count(self):
         ri = mi.RichIterator.count()
         self.assertEqual(list(it.islice(ri, 5)), [0, 1, 2, 3, 4])

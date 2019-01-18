@@ -20,6 +20,11 @@ class RichIterator(six.Iterator):
     def __next__(self):
         return next(self._it)
 
+    def __getitem__(self, index):
+        if isinstance(index, int):
+            raise NotImplementedError
+        return self._wrap(it.islice, index.start, index.stop, index.step)
+
     @classmethod
     def count(cls, start=0, step=1):
         return cls(it.count(start, step))
