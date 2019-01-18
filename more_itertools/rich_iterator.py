@@ -5,14 +5,26 @@ import six
 from six.moves import filter, filterfalse, map, zip, zip_longest
 try:
     accumulate = it.accumulate
-except AttributeError:
+except AttributeError:  # pragma: no cover
     from .recipes import accumulate
 
 
 __all__ = ['RichIterator']
 
 
-class RichIterator(six.Iterator):
+def make_py2_compatible(cls):
+    if not six.PY3:  # pragma: no cover
+        if hasattr(cls, '__next__'):
+            cls.next = cls.__next__
+            del cls.__next__
+        if hasattr(cls, '__bool__'):
+            cls.__nonzero__ = cls.__bool__
+            del cls.__bool__
+    return cls
+
+
+@make_py2_compatible
+class RichIterator(object):
     """Iterable wrapper exposing several convenience methods and operators."""
 
     __slots__ = ('_it',)
@@ -25,6 +37,14 @@ class RichIterator(six.Iterator):
 
     def __next__(self):
         return next(self._it)
+
+    def __bool__(self):
+        try:
+            next(self._it)
+        except StopIteration:
+            return False
+        else:
+            return True
 
     def __getitem__(self, index):
         if isinstance(index, int):

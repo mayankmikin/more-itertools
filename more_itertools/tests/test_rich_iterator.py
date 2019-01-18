@@ -28,6 +28,12 @@ class RichIteratorTests(unittest.TestCase):
             self.assertRaises(StopIteration, next, ri)
             self.assertEqual(list(ri), [])
 
+    def test_bool(self):
+        for ri in self.rich_iters():
+            self.assertTrue(ri)
+        for ri in self.rich_iters([]):
+            self.assertFalse(ri)
+
     def test_slicing(self):
         for ri in self.rich_iters():
             self.assertEqual(list(ri[:]), [1, 2, 3, 4, 5])
