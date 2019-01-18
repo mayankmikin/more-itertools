@@ -97,6 +97,9 @@ class RichIterator(object):
     def __xor__(self, func):
         return self.filterfalse(func)
 
+    def __rshift__(self, func):
+        return self.dropwhile(func)
+
     @classmethod
     def count(cls, start=0, step=1):
         return cls(it.count(start, step))

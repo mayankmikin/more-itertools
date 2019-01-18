@@ -9,6 +9,7 @@ from more_itertools import RichIterator
 
 
 is_odd = lambda x: x % 2 == 1
+less_than_3 = lambda x: x < 3
 
 
 class RichIteratorTests(unittest.TestCase):
@@ -99,6 +100,10 @@ class RichIteratorTests(unittest.TestCase):
         for ri in self.rich_iters():
             self.assertEqual(list(ri ^ is_odd), [2, 4])
 
+    def test_rshift(self):
+        for ri in self.rich_iters():
+            self.assertEqual(list(ri >> less_than_3), [3, 4, 5])
+
     def test_count(self):
         ri = RichIterator.count()
         self.assertEqual(list(islice(ri, 5)), [0, 1, 2, 3, 4])
@@ -146,7 +151,7 @@ class RichIteratorTests(unittest.TestCase):
 
     def test_dropwhile(self):
         for ri in self.rich_iters():
-            self.assertEqual(list(ri.dropwhile(lambda x: x < 3)), [3, 4, 5])
+            self.assertEqual(list(ri.dropwhile(less_than_3)), [3, 4, 5])
 
     def test_filter(self):
         for ri in self.rich_iters():
@@ -181,7 +186,7 @@ class RichIteratorTests(unittest.TestCase):
 
     def test_takewhile(self):
         for ri in self.rich_iters():
-            self.assertEqual(list(ri.takewhile(lambda x: x < 3)), [1, 2])
+            self.assertEqual(list(ri.takewhile(less_than_3)), [1, 2])
 
     def test_tee(self):
         for ri in self.rich_iters():
