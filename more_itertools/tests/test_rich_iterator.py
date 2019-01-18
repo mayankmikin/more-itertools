@@ -108,6 +108,26 @@ class RichIteratorTests(unittest.TestCase):
         for ri in self.rich_iters():
             self.assertEqual(list(ri << less_than_3), [1, 2])
 
+    def test_pow_iterable(self):
+        for ri in self.rich_iters('ABCD'):
+            self.assertEqual(list(ri ** 'xy'),
+                             list(map(tuple, 'Ax Ay Bx By '
+                                             'Cx Cy Dx Dy'.split())))
+
+    def test_rpow_iterable(self):
+        for ri in self.rich_iters('ABCD'):
+            with self.assertRaises(TypeError):
+                3 ** ri
+            self.assertEqual(list('xy' ** ri),
+                             list(map(tuple, 'xA xB xC xD '
+                                             'yA yB yC yD'.split())))
+
+    def test_pow_int(self):
+        for ri in self.rich_iters(range(2)):
+            self.assertEqual(list(ri ** 3),
+                             [(0, 0, 0), (0, 0, 1), (0, 1, 0), (0, 1, 1),
+                              (1, 0, 0), (1, 0, 1), (1, 1, 0), (1, 1, 1)])
+
     def test_mod(self):
         for ri in self.rich_iters('ABCD'):
             self.assertEqual(list(ri % 2),
@@ -244,16 +264,6 @@ class RichIteratorTests(unittest.TestCase):
                              [(1, 'x', True), (2, 'y', False), (3, 'z', None),
                               (4, None, None), (5, None, None)])
 
-    def test_permutations(self):
-        for ri in self.rich_iters('ABCD'):
-            self.assertEqual(list(ri.permutations(2)),
-                             list(map(tuple, 'AB AC AD BA BC BD '
-                                             'CA CB CD DA DB DC'.split())))
-        for ri in self.rich_iters(range(3)):
-            self.assertEqual(list(ri.permutations()),
-                             [(0, 1, 2), (0, 2, 1), (1, 0, 2),
-                              (1, 2, 0), (2, 0, 1), (2, 1, 0)])
-
     def test_product(self):
         for ri in self.rich_iters('ABCD'):
             self.assertEqual(list(ri.product('xy')),
@@ -263,6 +273,16 @@ class RichIteratorTests(unittest.TestCase):
             self.assertEqual(list(ri.product(repeat=3)),
                              [(0, 0, 0), (0, 0, 1), (0, 1, 0), (0, 1, 1),
                               (1, 0, 0), (1, 0, 1), (1, 1, 0), (1, 1, 1)])
+
+    def test_permutations(self):
+        for ri in self.rich_iters('ABCD'):
+            self.assertEqual(list(ri.permutations(2)),
+                             list(map(tuple, 'AB AC AD BA BC BD '
+                                             'CA CB CD DA DB DC'.split())))
+        for ri in self.rich_iters(range(3)):
+            self.assertEqual(list(ri.permutations()),
+                             [(0, 1, 2), (0, 2, 1), (1, 0, 2),
+                              (1, 2, 0), (2, 0, 1), (2, 1, 0)])
 
     def test_combinations(self):
         for ri in self.rich_iters('ABCD'):

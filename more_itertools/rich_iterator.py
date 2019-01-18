@@ -27,7 +27,7 @@ def make_py2_compatible(cls):
 
 
 def add_swapped_operators(cls):
-    for name in 'add', 'mul':
+    for name in 'add', 'mul', 'pow':
         method = getattr(cls, '__{}__'.format(name), None)
         if method:
             add_swapped_method(cls, name, method)
@@ -104,6 +104,10 @@ class RichIterator(object):
 
     def __lshift__(self, predicate):
         return self.takewhile(predicate)
+
+    def __pow__(self, other):
+        return (self.product(repeat=other) if isinstance(other, int) else
+                self.product(other))
 
     def __mod__(self, r):
         return self.permutations(r)
