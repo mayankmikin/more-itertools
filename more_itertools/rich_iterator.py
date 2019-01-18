@@ -2,8 +2,14 @@ import itertools as it
 import operator
 
 import six
+from six.moves import filter, filterfalse, map, zip, zip_longest
+try:
+    accumulate = it.accumulate
+except AttributeError:
+    from .recipes import accumulate
 
-from . import recipes
+
+__all__ = ['RichIterator']
 
 
 class RichIterator(six.Iterator):
@@ -41,7 +47,7 @@ class RichIterator(six.Iterator):
         return self._wrap(it.cycle)
 
     def accumulate(self, func=operator.add):
-        return self._wrap(_accumulate, func)
+        return self._wrap(accumulate, func)
 
     def chain(self, *iterables):
         return self._wrap(it.chain, *iterables)
@@ -53,16 +59,16 @@ class RichIterator(six.Iterator):
         return self._wrap1(it.dropwhile, predicate)
 
     def filter(self, predicate):
-        return self._wrap1(_filter, predicate)
+        return self._wrap1(filter, predicate)
 
     def filterfalse(self, predicate):
-        return self._wrap1(_filterfalse, predicate)
+        return self._wrap1(filterfalse, predicate)
 
     def groupby(self, key=None):
         return self._wrap(it.groupby, key)
 
     def map(self, func, *iterables):
-        return self._wrap1(_map, func, *iterables)
+        return self._wrap1(map, func, *iterables)
 
     def starmap(self, func):
         return self._wrap1(it.starmap, func)
@@ -74,10 +80,10 @@ class RichIterator(six.Iterator):
         return self._wrap(it.tee, n)
 
     def zip(self, *iterables):
-        return self._wrap(_zip, *iterables)
+        return self._wrap(zip, *iterables)
 
     def zip_longest(self, *iterables, **kwargs):
-        return self._wrap(_zip_longest, *iterables, **kwargs)
+        return self._wrap(zip_longest, *iterables, **kwargs)
 
     def product(self, *iterables, **kwargs):
         return self._wrap(it.product, *iterables, **kwargs)
@@ -96,11 +102,3 @@ class RichIterator(six.Iterator):
 
     def _wrap1(self, func, *args, **kwargs):
         return self.__class__(func(args[0], self._it, *args[1:], **kwargs))
-
-
-_accumulate = getattr(it, 'accumulate', recipes.accumulate)
-_filter = six.moves.filter
-_filterfalse = six.moves.filterfalse
-_map = six.moves.map
-_zip = six.moves.zip
-_zip_longest = six.moves.zip_longest
