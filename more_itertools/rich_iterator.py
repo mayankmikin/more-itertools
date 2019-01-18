@@ -94,6 +94,9 @@ class RichIterator(object):
     def __and__(self, func):
         return self.filter(func)
 
+    def __xor__(self, func):
+        return self.filterfalse(func)
+
     @classmethod
     def count(cls, start=0, step=1):
         return cls(it.count(start, step))

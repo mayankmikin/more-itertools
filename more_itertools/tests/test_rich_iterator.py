@@ -95,6 +95,10 @@ class RichIteratorTests(unittest.TestCase):
         for ri in self.rich_iters():
             self.assertEqual(list(ri & is_odd), [1, 3, 5])
 
+    def test_xor(self):
+        for ri in self.rich_iters():
+            self.assertEqual(list(ri ^ is_odd), [2, 4])
+
     def test_count(self):
         ri = RichIterator.count()
         self.assertEqual(list(islice(ri, 5)), [0, 1, 2, 3, 4])
