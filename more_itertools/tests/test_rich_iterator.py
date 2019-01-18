@@ -76,6 +76,14 @@ class RichIteratorTests(unittest.TestCase):
             self.assertEqual(list('DEF' + ri),
                              ['D', 'E', 'F', 1, 2, 3, 4, 5])
 
+    def test_mul(self):
+        for ri in self.rich_iters():
+            self.assertEqual(list(ri * 'xy'), [(1, 'x'), (2, 'y')])
+
+    def test_rmul(self):
+        for ri in self.rich_iters():
+            self.assertEqual(list('xy' * ri), [('x', 1), ('y', 2)])
+
     def test_count(self):
         ri = RichIterator.count()
         self.assertEqual(list(islice(ri, 5)), [0, 1, 2, 3, 4])

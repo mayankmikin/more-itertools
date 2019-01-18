@@ -85,6 +85,9 @@ class RichIterator(object):
     def __add__(self, other):
         return self.chain(other)
 
+    def __mul__(self, other):
+        return self.zip(other)
+
     @classmethod
     def count(cls, start=0, step=1):
         return cls(it.count(start, step))
