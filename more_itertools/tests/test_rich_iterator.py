@@ -108,6 +108,15 @@ class RichIteratorTests(unittest.TestCase):
         for ri in self.rich_iters():
             self.assertEqual(list(ri << less_than_3), [1, 2])
 
+    def test_truediv(self):
+        for ri in self.rich_iters('ABCD'):
+            self.assertEqual(list(ri / 2),
+                             [('A', 'B'), ('A', 'C'), ('A', 'D'),
+                              ('B', 'C'), ('B', 'D'), ('C', 'D')])
+        for ri in self.rich_iters(range(4)):
+            self.assertEqual(list(ri / 3),
+                             [(0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3)])
+
     def test_count(self):
         ri = RichIterator.count()
         self.assertEqual(list(islice(ri, 5)), [0, 1, 2, 3, 4])

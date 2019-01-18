@@ -14,13 +14,15 @@ __all__ = ['RichIterator']
 
 
 def make_py2_compatible(cls):
+    def swap(py3_name, py2_name):
+        if hasattr(cls, py3_name):  # pragma: no cover
+            setattr(cls, py2_name, getattr(cls, py3_name))
+            delattr(cls, py3_name)
+
     if not six.PY3:  # pragma: no cover
-        if hasattr(cls, '__next__'):
-            cls.next = cls.__next__
-            del cls.__next__
-        if hasattr(cls, '__bool__'):
-            cls.__nonzero__ = cls.__bool__
-            del cls.__bool__
+        swap('__next__', 'next')
+        swap('__bool__', '__nonzero__')
+        swap('__truediv__', '__div__')
     return cls
 
 
@@ -102,6 +104,9 @@ class RichIterator(object):
 
     def __lshift__(self, func):
         return self.takewhile(func)
+
+    def __truediv__(self, func):
+        return self.combinations(func)
 
     @classmethod
     def count(cls, start=0, step=1):
