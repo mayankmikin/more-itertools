@@ -8,6 +8,9 @@ from six.moves import range
 from more_itertools import RichIterator
 
 
+is_odd = lambda x: x % 2 == 1
+
+
 class RichIteratorTests(unittest.TestCase):
     """Tests for ``RichIterator()``"""
 
@@ -88,6 +91,10 @@ class RichIteratorTests(unittest.TestCase):
         for ri in self.rich_iters():
             self.assertEqual(list(ri | operator.neg), [-1, -2, -3, -4, -5])
 
+    def test_and(self):
+        for ri in self.rich_iters():
+            self.assertEqual(list(ri & is_odd), [1, 3, 5])
+
     def test_count(self):
         ri = RichIterator.count()
         self.assertEqual(list(islice(ri, 5)), [0, 1, 2, 3, 4])
@@ -139,11 +146,11 @@ class RichIteratorTests(unittest.TestCase):
 
     def test_filter(self):
         for ri in self.rich_iters():
-            self.assertEqual(list(ri.filter(lambda x: x % 2)), [1, 3, 5])
+            self.assertEqual(list(ri.filter(is_odd)), [1, 3, 5])
 
     def test_filterfalse(self):
         for ri in self.rich_iters():
-            self.assertEqual(list(ri.filterfalse(lambda x: x % 2)), [2, 4])
+            self.assertEqual(list(ri.filterfalse(is_odd)), [2, 4])
 
     def test_groupby(self):
         for ri in self.rich_iters('AAAABBBCCDAABBBB'):

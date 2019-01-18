@@ -91,6 +91,9 @@ class RichIterator(object):
     def __or__(self, func):
         return self.map(func)
 
+    def __and__(self, func):
+        return self.filter(func)
+
     @classmethod
     def count(cls, start=0, step=1):
         return cls(it.count(start, step))
