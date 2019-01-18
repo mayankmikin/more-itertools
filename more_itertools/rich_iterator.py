@@ -47,27 +47,6 @@ def add_swapped_method(cls, name, method):
     setattr(cls, swapped_name, swapped)
 
 
-class rich_iter(object):
-
-    def __new__(cls, iterable, rewindable=False):
-        if not rewindable:
-            factory = RichIterator
-        elif iter(iterable) is iterable:
-            factory = RewindableRichIterator
-        else:
-            factory = RewindableRichIterable
-        return factory(iterable)
-
-    @classmethod
-    def count(cls, start=0, step=1, rewindable=False):
-        return cls(it.count(start, step), rewindable=rewindable)
-
-    @classmethod
-    def repeat(cls, object, times=None, rewindable=False):
-        return cls(it.repeat(object, times) if times is not None else
-                   it.repeat(object), rewindable=rewindable)
-
-
 @add_swapped_operators
 @make_py2_compatible
 class RichIterator(object):
@@ -98,7 +77,7 @@ class RichIterator(object):
                 return next(it.islice(self._it, index, None))
             except StopIteration:
                 raise IndexError('index out of range')
-        return self._wrap(it.islice, index.start, index.stop, index.step)
+        return self._wrap0(it.islice, index.start, index.stop, index.step)
 
     def __copy__(self):
         self._it, new_it = it.tee(self._it)
@@ -139,17 +118,17 @@ class RichIterator(object):
         return self.combinations_with_replacement(r)
 
     def cycle(self):
-        return self._wrap(it.cycle)
+        return self._wrap0(it.cycle)
 
     def accumulate(self, func=operator.add):
-        return self._wrap(accumulate, func)
+        return self._wrap0(accumulate, func)
 
     @property
     def chain(self):
         return RichIteratorChain(self)
 
     def compress(self, selectors):
-        return self._wrap(it.compress, selectors)
+        return self._wrap0(it.compress, selectors)
 
     def dropwhile(self, predicate):
         return self._wrap1(it.dropwhile, predicate)
@@ -162,7 +141,7 @@ class RichIterator(object):
 
     def groupby(self, key=None, sort=False):
         iterable = sorted(self._it, key=key) if sort else self._it
-        return self.__class__(it.groupby(iterable, key))
+        return self._from_iterator(it.groupby(iterable, key))
 
     def map(self, func, *iterables):
         return self._wrap1(map, func, *iterables)
@@ -177,28 +156,31 @@ class RichIterator(object):
         return tuple(self.__class__(i) for i in it.tee(self._it, n))
 
     def zip(self, *iterables):
-        return self._wrap(zip, *iterables)
+        return self._wrap0(zip, *iterables)
 
     def zip_longest(self, *iterables, **kwargs):
-        return self._wrap(zip_longest, *iterables, **kwargs)
+        return self._wrap0(zip_longest, *iterables, **kwargs)
 
     def product(self, *iterables, **kwargs):
-        return self._wrap(it.product, *iterables, **kwargs)
+        return self._wrap0(it.product, *iterables, **kwargs)
 
     def permutations(self, r=None):
-        return self._wrap(it.permutations, r)
+        return self._wrap0(it.permutations, r)
 
     def combinations(self, r):
-        return self._wrap(it.combinations, r)
+        return self._wrap0(it.combinations, r)
 
     def combinations_with_replacement(self, r):
-        return self._wrap(it.combinations_with_replacement, r)
+        return self._wrap0(it.combinations_with_replacement, r)
 
-    def _wrap(self, func, *args, **kwargs):
-        return self.__class__(func(self._it, *args, **kwargs))
+    def _wrap0(self, func, *args, **kwargs):
+        return self._from_iterator(func(self._it, *args, **kwargs))
 
     def _wrap1(self, func, *args):
-        return self.__class__(func(args[0], self._it, *args[1:]))
+        return self._from_iterator(func(args[0], self._it, *args[1:]))
+
+    def _from_iterator(self, iterator):
+        return self.__class__(iterator)
 
 
 class RichIteratorChain(object):
@@ -209,10 +191,10 @@ class RichIteratorChain(object):
         self._ri = rich_iter
 
     def __call__(self, *iterables):
-        return self._ri._wrap(it.chain, *iterables)
+        return self._ri._wrap0(it.chain, *iterables)
 
     def from_iterable(self):
-        return self._ri._wrap(it.chain.from_iterable)
+        return self._ri._wrap0(it.chain.from_iterable)
 
 
 class RewindableRichIterable(RichIterator):
@@ -246,3 +228,46 @@ class RewindableRichIterator(RichIterator):
         self._it = it.chain(self._seen[:], self._it)
         del self._seen[:]
         return self
+
+
+class MutableRichIteratorMixin:
+
+    def _from_iterator(self, iterator):
+        self._it = iterator
+        return self
+
+
+REGISTRY = {
+    'shared': RichIterator,
+    (True, 'shared'): RewindableRichIterator,
+    (False, 'shared'): RewindableRichIterable,
+
+    'mutable': type('MutableRichIterator',
+                    (MutableRichIteratorMixin, RichIterator), {}),
+    (True, 'mutable'): type('MutableRewindableRichIterator',
+                            (MutableRichIteratorMixin,
+                             RewindableRichIterator), {}),
+    (False, 'mutable'): type('MutableRewindableRichIterable',
+                             (MutableRichIteratorMixin,
+                              RewindableRichIterator), {}),
+}
+
+
+class rich_iter(object):
+
+    def __new__(cls, iterable, rewindable=False, state='shared'):
+        if not rewindable:
+            factory = REGISTRY[state]
+        else:
+            is_iterator = iter(iterable) is iterable
+            factory = REGISTRY[is_iterator, state]
+        return factory(iterable)
+
+    @classmethod
+    def count(cls, start=0, step=1, rewindable=False, state='shared'):
+        return cls(it.count(start, step), rewindable=rewindable, state=state)
+
+    @classmethod
+    def repeat(cls, object, times=None, rewindable=False, state='shared'):
+        return cls(it.repeat(object, times) if times is not None else
+                   it.repeat(object), rewindable=rewindable, state=state)

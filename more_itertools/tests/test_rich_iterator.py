@@ -315,6 +315,20 @@ class RichIteratorTests(unittest.TestCase):
                              [('A', 'A'), ('A', 'B'), ('A', 'C'),
                               ('B', 'B'), ('B', 'C'), ('C', 'C')])
 
+    def test_state(self):
+        # iterating the mapped iterator exhausts the original one too
+        for ri in self.rich_iters():
+            ri2 = ri.map(operator.neg)
+            self.assertEqual(list(ri2), [-1, -2, -3, -4, -5])
+            self.assertEqual(list(ri2), [])
+            self.assertEqual(list(ri), [])
+        # iterating the original iterator exhausts the mapped one too
+        for ri in self.rich_iters():
+            ri2 = ri.map(operator.neg)
+            self.assertEqual(list(ri), [1, 2, 3, 4, 5])
+            self.assertEqual(list(ri), [])
+            self.assertEqual(list(ri2), [])
+
 
 class RewindableRichIteratorTests(RichIteratorTests):
 
@@ -329,3 +343,22 @@ class RewindableRichIteratorTests(RichIteratorTests):
             ri.rewind()
             self.assertEqual(next(ri), 1)
             self.assertEqual(next(ri), 2)
+
+
+class MutableRichIteratorTests(RichIteratorTests):
+
+    factory_kwargs = dict(state='mutable')
+
+    def test_state(self):
+        # any operation mutates the original rich iterator
+        for ri in self.rich_iters():
+            ri2 = ri.map(operator.neg)
+            self.assertIs(ri, ri2)
+            self.assertEqual(list(ri), [-1, -2, -3, -4, -5])
+            self.assertEqual(list(ri), [])
+            self.assertEqual(list(ri2), [])
+
+
+class MutableRewindableRichIteratorTests(MutableRichIteratorTests,
+                                         RewindableRichIteratorTests):
+    factory_kwargs = dict(rewindable=True, state='mutable')
