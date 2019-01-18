@@ -104,6 +104,10 @@ class RichIteratorTests(unittest.TestCase):
         for ri in self.rich_iters():
             self.assertEqual(list(ri >> less_than_3), [3, 4, 5])
 
+    def test_lshift(self):
+        for ri in self.rich_iters():
+            self.assertEqual(list(ri << less_than_3), [1, 2])
+
     def test_count(self):
         ri = RichIterator.count()
         self.assertEqual(list(islice(ri, 5)), [0, 1, 2, 3, 4])

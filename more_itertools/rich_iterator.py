@@ -100,6 +100,9 @@ class RichIterator(object):
     def __rshift__(self, func):
         return self.dropwhile(func)
 
+    def __lshift__(self, func):
+        return self.takewhile(func)
+
     @classmethod
     def count(cls, start=0, step=1):
         return cls(it.count(start, step))
