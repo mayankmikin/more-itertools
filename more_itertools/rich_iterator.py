@@ -54,6 +54,10 @@ class RichIterator(object):
                 raise IndexError('index out of range')
         return self._wrap(it.islice, index.start, index.stop, index.step)
 
+    def __copy__(self):
+        self._it, new_it = it.tee(self._it)
+        return self.__class__(new_it)
+
     @classmethod
     def count(cls, start=0, step=1):
         return cls(it.count(start, step))
