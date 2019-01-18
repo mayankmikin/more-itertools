@@ -77,6 +77,12 @@ class RichIterator(six.Iterator):
     def permutations(self, r=None):
         return self._wrap(it.permutations, r)
 
+    def combinations(self, r):
+        return self._wrap(it.combinations, r)
+
+    def combinations_with_replacement(self, r):
+        return self._wrap(it.combinations_with_replacement, r)
+
     def _wrap(self, func, *args, **kwargs):
         return self.__class__(func(self._it, *args, **kwargs))
 

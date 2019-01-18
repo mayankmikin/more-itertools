@@ -154,3 +154,18 @@ class RichIteratorTests(unittest.TestCase):
             self.assertEqual(list(ri.product(repeat=3)),
                              [(0, 0, 0), (0, 0, 1), (0, 1, 0), (0, 1, 1),
                               (1, 0, 0), (1, 0, 1), (1, 1, 0), (1, 1, 1)])
+
+    def test_combinations(self):
+        for ri in self.rich_iters('ABCD'):
+            self.assertEqual(list(ri.combinations(2)),
+                             [('A', 'B'), ('A', 'C'), ('A', 'D'),
+                              ('B', 'C'), ('B', 'D'), ('C', 'D')])
+        for ri in self.rich_iters(range(4)):
+            self.assertEqual(list(ri.combinations(3)),
+                             [(0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3)])
+
+    def test_combinations_with_replacement(self):
+        for ri in self.rich_iters('ABC'):
+            self.assertEqual(list(ri.combinations_with_replacement(2)),
+                             [('A', 'A'), ('A', 'B'), ('A', 'C'),
+                              ('B', 'B'), ('B', 'C'), ('C', 'C')])
