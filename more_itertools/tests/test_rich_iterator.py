@@ -84,6 +84,10 @@ class RichIteratorTests(unittest.TestCase):
         for ri in self.rich_iters():
             self.assertEqual(list('xy' * ri), [('x', 1), ('y', 2)])
 
+    def test_or(self):
+        for ri in self.rich_iters():
+            self.assertEqual(list(ri | operator.neg), [-1, -2, -3, -4, -5])
+
     def test_count(self):
         ri = RichIterator.count()
         self.assertEqual(list(islice(ri, 5)), [0, 1, 2, 3, 4])
