@@ -102,7 +102,7 @@ class RichIterator(object):
         return self._wrap1(it.takewhile, predicate)
 
     def tee(self, n=2):
-        return self._wrap(it.tee, n)
+        return tuple(self.__class__(i) for i in it.tee(self._it, n))
 
     def zip(self, *iterables):
         return self._wrap(zip, *iterables)
