@@ -108,6 +108,12 @@ class RichIteratorTests(unittest.TestCase):
         for ri in self.rich_iters():
             self.assertEqual(list(ri << less_than_3), [1, 2])
 
+    def test_mod(self):
+        for ri in self.rich_iters('ABCD'):
+            self.assertEqual(list(ri % 2),
+                             list(map(tuple, 'AB AC AD BA BC BD '
+                                             'CA CB CD DA DB DC'.split())))
+
     def test_truediv(self):
         for ri in self.rich_iters('ABCD'):
             self.assertEqual(list(ri / 2),

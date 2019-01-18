@@ -105,6 +105,9 @@ class RichIterator(object):
     def __lshift__(self, func):
         return self.takewhile(func)
 
+    def __mod__(self, r):
+        return self.permutations(r)
+
     def __truediv__(self, func):
         return self.combinations(func)
 
