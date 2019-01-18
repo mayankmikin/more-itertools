@@ -10,7 +10,7 @@ except AttributeError:  # pragma: no cover
     from .recipes import accumulate
 
 
-__all__ = ['RichIterator']
+__all__ = ['rich_iter']
 
 
 def make_py2_compatible(cls):
@@ -46,6 +46,21 @@ def add_swapped_method(cls, name, method):
     if hasattr(swapped, '__qualname__'):  # pragma: no cover
         swapped.__qualname__ = swapped.__qualname__.replace(name, 'r' + name)
     setattr(cls, swapped_name, swapped)
+
+
+class rich_iter(object):
+
+    def __new__(cls, iterable):
+        return RichIterator(iterable)
+
+    @classmethod
+    def count(cls, start=0, step=1):
+        return cls(it.count(start, step))
+
+    @classmethod
+    def repeat(cls, object, times=None):
+        return cls(it.repeat(object, times) if times is not None else
+                   it.repeat(object))
 
 
 @add_swapped_operators
@@ -117,15 +132,6 @@ class RichIterator(object):
 
     def __floordiv__(self, r):
         return self.combinations_with_replacement(r)
-
-    @classmethod
-    def count(cls, start=0, step=1):
-        return cls(it.count(start, step))
-
-    @classmethod
-    def repeat(cls, object, times=None):
-        return cls(it.repeat(object, times) if times is not None else
-                   it.repeat(object))
 
     def cycle(self):
         return self._wrap(it.cycle)

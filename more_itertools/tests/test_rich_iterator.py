@@ -5,7 +5,7 @@ from itertools import islice
 
 from six.moves import range
 
-from more_itertools import RichIterator
+from more_itertools import rich_iter
 
 
 is_odd = lambda x: x % 2 == 1
@@ -17,7 +17,7 @@ class RichIteratorTests(unittest.TestCase):
 
     @staticmethod
     def rich_iters(iterable=range(1, 6)):
-        return list(map(RichIterator, [
+        return list(map(rich_iter, [
             iterable,
             list(iterable),
             iter(iterable),
@@ -66,7 +66,7 @@ class RichIteratorTests(unittest.TestCase):
     def test_copy(self):
         for ri in self.rich_iters():
             ri2 = copy.copy(ri)
-            self.assertIsInstance(ri2, RichIterator)
+            self.assertIs(ri2.__class__, ri.__class__)
             self.assertEqual(list(ri), [1, 2, 3, 4, 5])
             self.assertEqual(list(ri2), [1, 2, 3, 4, 5])
 
@@ -150,23 +150,23 @@ class RichIteratorTests(unittest.TestCase):
                               ('B', 'B'), ('B', 'C'), ('C', 'C')])
 
     def test_count(self):
-        ri = RichIterator.count()
+        ri = rich_iter.count()
         self.assertEqual(list(islice(ri, 5)), [0, 1, 2, 3, 4])
 
-        ri = RichIterator.count(10)
+        ri = rich_iter.count(10)
         self.assertEqual(list(islice(ri, 5)), [10, 11, 12, 13, 14])
 
-        ri = RichIterator.count(step=2)
+        ri = rich_iter.count(step=2)
         self.assertEqual(list(islice(ri, 5)), [0, 2, 4, 6, 8])
 
-        ri = RichIterator.count(10, 2)
+        ri = rich_iter.count(10, 2)
         self.assertEqual(list(islice(ri, 5)), [10, 12, 14, 16, 18])
 
     def test_repeat(self):
-        ri = RichIterator.repeat(10, 3)
+        ri = rich_iter.repeat(10, 3)
         self.assertEqual(list(ri), [10, 10, 10])
 
-        ri = RichIterator.repeat(10)
+        ri = rich_iter.repeat(10)
         self.assertEqual(list(islice(ri, 5)), [10, 10, 10, 10, 10])
 
     def test_cycle(self):
@@ -247,13 +247,13 @@ class RichIteratorTests(unittest.TestCase):
         for ri in self.rich_iters():
             it1, it2 = ri.tee()
             for i in it1, it2:
-                self.assertIsInstance(i, RichIterator)
+                self.assertIs(i.__class__, ri.__class__)
             self.assertEqual(list(it1), [1, 2, 3, 4, 5])
             self.assertEqual(list(it2), [1, 2, 3, 4, 5])
         for ri in self.rich_iters():
             it1, it2, it3 = ri.tee(3)
             for i in it1, it2, it3:
-                self.assertIsInstance(i, RichIterator)
+                self.assertIs(i.__class__, ri.__class__)
             self.assertEqual(list(it1), [1, 2, 3, 4, 5])
             self.assertEqual(list(it2), [1, 2, 3, 4, 5])
             self.assertEqual(list(it3), [1, 2, 3, 4, 5])
