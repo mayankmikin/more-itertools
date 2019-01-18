@@ -49,8 +49,9 @@ class RichIterator(six.Iterator):
     def accumulate(self, func=operator.add):
         return self._wrap(accumulate, func)
 
-    def chain(self, *iterables):
-        return self._wrap(it.chain, *iterables)
+    @property
+    def chain(self):
+        return RichIteratorChain(self)
 
     def compress(self, selectors):
         return self._wrap(it.compress, selectors)
@@ -102,3 +103,15 @@ class RichIterator(six.Iterator):
 
     def _wrap1(self, func, *args, **kwargs):
         return self.__class__(func(args[0], self._it, *args[1:], **kwargs))
+
+
+class RichIteratorChain(object):
+
+    def __init__(self, rich_iter):
+        self._ri = rich_iter
+
+    def __call__(self, *iterables):
+        return self._ri._wrap(it.chain, *iterables)
+
+    def from_iterable(self):
+        return self._ri._wrap(it.chain.from_iterable)
