@@ -149,8 +149,9 @@ class RichIterator(object):
     def filterfalse(self, predicate):
         return self._wrap1(filterfalse, predicate)
 
-    def groupby(self, key=None):
-        return self._wrap(it.groupby, key)
+    def groupby(self, key=None, sort=False):
+        iterable = sorted(self._it, key=key) if sort else self._it
+        return self.__class__(it.groupby(iterable, key))
 
     def map(self, func, *iterables):
         return self._wrap1(map, func, *iterables)
@@ -185,8 +186,8 @@ class RichIterator(object):
     def _wrap(self, func, *args, **kwargs):
         return self.__class__(func(self._it, *args, **kwargs))
 
-    def _wrap1(self, func, *args, **kwargs):
-        return self.__class__(func(args[0], self._it, *args[1:], **kwargs))
+    def _wrap1(self, func, *args):
+        return self.__class__(func(args[0], self._it, *args[1:]))
 
 
 class RichIteratorChain(object):

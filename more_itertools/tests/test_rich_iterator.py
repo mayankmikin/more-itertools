@@ -211,11 +211,21 @@ class RichIteratorTests(unittest.TestCase):
             self.assertEqual([(k, ''.join(g)) for k, g in ri.groupby()],
                              [('A', 'AAAA'), ('B', 'BBB'), ('C', 'CC'),
                               ('D', 'D'), ('A', 'AA'), ('B', 'BBBB')])
-
         for ri in self.rich_iters('AAAABBBCCDAABBBB'):
             self.assertEqual(
                 [(k, ''.join(g)) for k, g in ri.groupby(lambda x: x > 'B')],
                 [(False, 'AAAABBB'), (True, 'CCD'), (False, 'AABBBB')])
+
+    def test_groupby_sort(self):
+        for ri in self.rich_iters('AAAABBBCCDAABBBB'):
+            itergroups = ri.groupby(sort=True)
+            self.assertEqual([(k, ''.join(g)) for k, g in itergroups],
+                             [('A', 'AAAAAA'), ('B', 'BBBBBBB'),
+                              ('C', 'CC'), ('D', 'D')])
+        for ri in self.rich_iters('AAAABBBCCDAABBBB'):
+            itergroups = ri.groupby(lambda x: x > 'B', sort=True)
+            self.assertEqual([(k, ''.join(g)) for k, g in itergroups],
+                             [(False, 'AAAABBBAABBBB'), (True, 'CCD')])
 
     def test_map(self):
         for ri in self.rich_iters():
