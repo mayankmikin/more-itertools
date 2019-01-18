@@ -22,7 +22,10 @@ class RichIterator(six.Iterator):
 
     def __getitem__(self, index):
         if isinstance(index, int):
-            raise NotImplementedError
+            try:
+                return next(it.islice(self._it, index, None))
+            except StopIteration:
+                raise IndexError('index out of range')
         return self._wrap(it.islice, index.start, index.stop, index.step)
 
     @classmethod

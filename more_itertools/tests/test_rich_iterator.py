@@ -42,6 +42,16 @@ class RichIteratorTests(unittest.TestCase):
         for ri in self.rich_iters():
             self.assertEqual(list(ri[1::2]), [2, 4])
 
+    def test_indexing(self):
+        for ri in self.rich_iters():
+            self.assertEqual(ri[2], 3)
+        for ri in self.rich_iters():
+            with self.assertRaises(ValueError):
+                ri[-1]
+        for ri in self.rich_iters():
+            with self.assertRaises(IndexError):
+                ri[5]
+
     def test_count(self):
         ri = mi.RichIterator.count()
         self.assertEqual(list(it.islice(ri, 5)), [0, 1, 2, 3, 4])
