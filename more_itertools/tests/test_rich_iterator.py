@@ -1,4 +1,5 @@
 import copy
+import functools
 import operator
 import unittest
 from itertools import islice
@@ -13,16 +14,17 @@ less_than_3 = lambda x: x < 3
 
 
 class RichIteratorTests(unittest.TestCase):
-    """Tests for ``RichIterator()``"""
 
-    @staticmethod
-    def rich_iters(iterable=range(1, 6)):
-        return list(map(rich_iter, [
+    factory_kwargs = {}
+
+    @classmethod
+    def rich_iters(cls, iterable=range(1, 6)):
+        return list(rich_iter(i, **cls.factory_kwargs) for i in [
             iterable,
             list(iterable),
             iter(iterable),
             iter(list(iterable)),
-        ]))
+        ])
 
     def test_iteration(self):
         """Test basic iteration"""
@@ -150,23 +152,27 @@ class RichIteratorTests(unittest.TestCase):
                               ('B', 'B'), ('B', 'C'), ('C', 'C')])
 
     def test_count(self):
-        ri = rich_iter.count()
+        count = functools.partial(rich_iter.count, **self.factory_kwargs)
+
+        ri = count()
         self.assertEqual(list(islice(ri, 5)), [0, 1, 2, 3, 4])
 
-        ri = rich_iter.count(10)
+        ri = count(10)
         self.assertEqual(list(islice(ri, 5)), [10, 11, 12, 13, 14])
 
-        ri = rich_iter.count(step=2)
+        ri = count(step=2)
         self.assertEqual(list(islice(ri, 5)), [0, 2, 4, 6, 8])
 
-        ri = rich_iter.count(10, 2)
+        ri = count(10, 2)
         self.assertEqual(list(islice(ri, 5)), [10, 12, 14, 16, 18])
 
     def test_repeat(self):
-        ri = rich_iter.repeat(10, 3)
+        repeat = functools.partial(rich_iter.repeat, **self.factory_kwargs)
+
+        ri = repeat(10, 3)
         self.assertEqual(list(ri), [10, 10, 10])
 
-        ri = rich_iter.repeat(10)
+        ri = repeat(10)
         self.assertEqual(list(islice(ri, 5)), [10, 10, 10, 10, 10])
 
     def test_cycle(self):
@@ -308,3 +314,18 @@ class RichIteratorTests(unittest.TestCase):
             self.assertEqual(list(ri.combinations_with_replacement(2)),
                              [('A', 'A'), ('A', 'B'), ('A', 'C'),
                               ('B', 'B'), ('B', 'C'), ('C', 'C')])
+
+
+class RewindableRichIteratorTests(RichIteratorTests):
+
+    factory_kwargs = dict(rewindable=True)
+
+    def test_rewind(self):
+        for ri in self.rich_iters():
+            self.assertEqual(next(ri), 1)
+            self.assertEqual(next(ri), 2)
+            ri.rewind()
+            self.assertEqual(list(ri), [1, 2, 3, 4, 5])
+            ri.rewind()
+            self.assertEqual(next(ri), 1)
+            self.assertEqual(next(ri), 2)

@@ -18,7 +18,6 @@ def make_py2_compatible(cls):
         if hasattr(cls, py3_name):  # pragma: no cover
             setattr(cls, py2_name, getattr(cls, py3_name))
             delattr(cls, py3_name)
-
     if not six.PY3:  # pragma: no cover
         swap('__next__', 'next')
         swap('__bool__', '__nonzero__')
@@ -50,17 +49,23 @@ def add_swapped_method(cls, name, method):
 
 class rich_iter(object):
 
-    def __new__(cls, iterable):
-        return RichIterator(iterable)
+    def __new__(cls, iterable, rewindable=False):
+        if not rewindable:
+            factory = RichIterator
+        elif iter(iterable) is iterable:
+            factory = RewindableRichIterator
+        else:
+            factory = RewindableRichIterable
+        return factory(iterable)
 
     @classmethod
-    def count(cls, start=0, step=1):
-        return cls(it.count(start, step))
+    def count(cls, start=0, step=1, rewindable=False):
+        return cls(it.count(start, step), rewindable=rewindable)
 
     @classmethod
-    def repeat(cls, object, times=None):
+    def repeat(cls, object, times=None, rewindable=False):
         return cls(it.repeat(object, times) if times is not None else
-                   it.repeat(object))
+                   it.repeat(object), rewindable=rewindable)
 
 
 @add_swapped_operators
@@ -198,6 +203,8 @@ class RichIterator(object):
 
 class RichIteratorChain(object):
 
+    __slots__ = ('_ri',)
+
     def __init__(self, rich_iter):
         self._ri = rich_iter
 
@@ -206,3 +213,36 @@ class RichIteratorChain(object):
 
     def from_iterable(self):
         return self._ri._wrap(it.chain.from_iterable)
+
+
+class RewindableRichIterable(RichIterator):
+
+    __slots__ = RichIterator.__slots__ + ('_iterable',)
+
+    def __init__(self, iterable):
+        self._iterable = iterable
+        super(RewindableRichIterable, self).__init__(iterable)
+
+    def rewind(self):
+        self._it = iter(self._iterable)
+        return self
+
+
+@make_py2_compatible
+class RewindableRichIterator(RichIterator):
+
+    __slots__ = RichIterator.__slots__ + ('_seen',)
+
+    def __init__(self, iterable):
+        self._seen = []
+        super(RewindableRichIterator, self).__init__(iterable)
+
+    def __next__(self):
+        value = next(self._it)
+        self._seen.append(value)
+        return value
+
+    def rewind(self):
+        self._it = it.chain(self._seen[:], self._it)
+        del self._seen[:]
+        return self
