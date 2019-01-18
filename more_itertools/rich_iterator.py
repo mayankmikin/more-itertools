@@ -93,26 +93,26 @@ class RichIterator(object):
     def __or__(self, func):
         return self.map(func)
 
-    def __and__(self, func):
-        return self.filter(func)
+    def __and__(self, predicate):
+        return self.filter(predicate)
 
-    def __xor__(self, func):
-        return self.filterfalse(func)
+    def __xor__(self, predicate):
+        return self.filterfalse(predicate)
 
-    def __rshift__(self, func):
-        return self.dropwhile(func)
+    def __rshift__(self, predicate):
+        return self.dropwhile(predicate)
 
-    def __lshift__(self, func):
-        return self.takewhile(func)
+    def __lshift__(self, predicate):
+        return self.takewhile(predicate)
 
     def __mod__(self, r):
         return self.permutations(r)
 
-    def __truediv__(self, func):
-        return self.combinations(func)
+    def __truediv__(self, r):
+        return self.combinations(r)
 
-    def __floordiv__(self, func):
-        return self.combinations_with_replacement(func)
+    def __floordiv__(self, r):
+        return self.combinations_with_replacement(r)
 
     @classmethod
     def count(cls, start=0, step=1):
