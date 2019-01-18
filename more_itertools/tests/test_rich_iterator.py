@@ -117,6 +117,12 @@ class RichIteratorTests(unittest.TestCase):
             self.assertEqual(list(ri / 3),
                              [(0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3)])
 
+    def test_floordiv(self):
+        for ri in self.rich_iters('ABC'):
+            self.assertEqual(list(ri // 2),
+                             [('A', 'A'), ('A', 'B'), ('A', 'C'),
+                              ('B', 'B'), ('B', 'C'), ('C', 'C')])
+
     def test_count(self):
         ri = RichIterator.count()
         self.assertEqual(list(islice(ri, 5)), [0, 1, 2, 3, 4])

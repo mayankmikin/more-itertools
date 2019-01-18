@@ -108,6 +108,9 @@ class RichIterator(object):
     def __truediv__(self, func):
         return self.combinations(func)
 
+    def __floordiv__(self, func):
+        return self.combinations_with_replacement(func)
+
     @classmethod
     def count(cls, start=0, step=1):
         return cls(it.count(start, step))
