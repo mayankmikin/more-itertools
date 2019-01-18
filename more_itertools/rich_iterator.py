@@ -1,4 +1,5 @@
 import itertools as it
+import functools
 import operator
 
 import six
@@ -23,6 +24,29 @@ def make_py2_compatible(cls):
     return cls
 
 
+def add_swapped_operators(cls):
+    for name in 'add', 'mul':
+        method = getattr(cls, '__{}__'.format(name), None)
+        if method:
+            add_swapped_method(cls, name, method)
+    return cls
+
+
+def add_swapped_method(cls, name, method):
+    @functools.wraps(method)
+    def swapped(self, other):
+        if not isinstance(other, cls):
+            other = cls(other)
+        return method(other, self)
+
+    swapped_name = '__r{}__'.format(name)
+    swapped.__name__ = swapped_name
+    if hasattr(swapped, '__qualname__'):  # pragma: no cover
+        swapped.__qualname__ = swapped.__qualname__.replace(name, 'r' + name)
+    setattr(cls, swapped_name, swapped)
+
+
+@add_swapped_operators
 @make_py2_compatible
 class RichIterator(object):
     """Iterable wrapper exposing several convenience methods and operators."""
@@ -57,6 +81,9 @@ class RichIterator(object):
     def __copy__(self):
         self._it, new_it = it.tee(self._it)
         return self.__class__(new_it)
+
+    def __add__(self, other):
+        return self.chain(other)
 
     @classmethod
     def count(cls, start=0, step=1):
