@@ -134,3 +134,23 @@ class RichIteratorTests(unittest.TestCase):
             self.assertEqual(list(ri.zip_longest('xyz', [True, False])),
                              [(1, 'x', True), (2, 'y', False), (3, 'z', None),
                               (4, None, None), (5, None, None)])
+
+    def test_permutations(self):
+        for ri in self.rich_iters('ABCD'):
+            self.assertEqual(list(ri.permutations(2)),
+                             list(map(tuple, 'AB AC AD BA BC BD '
+                                             'CA CB CD DA DB DC'.split())))
+        for ri in self.rich_iters(range(3)):
+            self.assertEqual(list(ri.permutations()),
+                             [(0, 1, 2), (0, 2, 1), (1, 0, 2),
+                              (1, 2, 0), (2, 0, 1), (2, 1, 0)])
+
+    def test_product(self):
+        for ri in self.rich_iters('ABCD'):
+            self.assertEqual(list(ri.product('xy')),
+                             list(map(tuple, 'Ax Ay Bx By '
+                                             'Cx Cy Dx Dy'.split())))
+        for ri in self.rich_iters(range(2)):
+            self.assertEqual(list(ri.product(repeat=3)),
+                             [(0, 0, 0), (0, 0, 1), (0, 1, 0), (0, 1, 1),
+                              (1, 0, 0), (1, 0, 1), (1, 1, 0), (1, 1, 1)])

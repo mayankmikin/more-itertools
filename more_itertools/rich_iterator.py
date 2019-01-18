@@ -71,6 +71,12 @@ class RichIterator(six.Iterator):
     def zip_longest(self, *iterables, **kwargs):
         return self._wrap(_zip_longest, *iterables, **kwargs)
 
+    def product(self, *iterables, **kwargs):
+        return self._wrap(it.product, *iterables, **kwargs)
+
+    def permutations(self, r=None):
+        return self._wrap(it.permutations, r)
+
     def _wrap(self, func, *args, **kwargs):
         return self.__class__(func(self._it, *args, **kwargs))
 
