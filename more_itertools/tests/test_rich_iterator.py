@@ -341,10 +341,10 @@ class CommonRichIteratorTests:
             self.assertEqual(ri.state_policy, self.state_policy)
 
 
-class SharedRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
+class ShareRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
 
     rewindable = False
-    state_policy = 'shared'
+    state_policy = 'share'
 
     def test_state_policy(self):
         # iterating the mapped iterator exhausts the original one too
@@ -363,15 +363,15 @@ class SharedRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
             self.assertEqual(list(ri2), [])
 
 
-class SharedRewindableRichIteratorTests(SharedRichIteratorTests):
+class ShareRewindableRichIteratorTests(ShareRichIteratorTests):
 
     rewindable = True
 
 
-class MutableRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
+class OwnRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
 
     rewindable = False
-    state_policy = 'mutable'
+    state_policy = 'own'
 
     def test_state_policy(self):
         # any operation mutates the original rich iterator
@@ -384,15 +384,15 @@ class MutableRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
             self.assertEqual(list(ri2), [])
 
 
-class MutableRewindableRichIteratorTests(MutableRichIteratorTests):
+class OwnRewindableRichIteratorTests(OwnRichIteratorTests):
 
     rewindable = True
 
 
-class ImmutableRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
+class SplitRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
 
     rewindable = False
-    state_policy = 'immutable'
+    state_policy = 'split'
 
     def test_state_policy(self):
         # iterating the mapped iterator does not iterate the original one
@@ -411,18 +411,18 @@ class ImmutableRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
             self.assertEqual(list(ri2), [-1, -2, -3, -4, -5])
 
 
-class ImmutableRewindableRichIteratorTests(ImmutableRichIteratorTests):
+class SplitRewindableRichIteratorTests(SplitRichIteratorTests):
 
     rewindable = True
 
 
-class ExclusiveRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
+class TransferRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
 
     rewindable = False
-    state_policy = 'exclusive'
+    state_policy = 'transfer'
 
     def test_state_policy(self):
-        # after generating a rich iterator from an exclusive rich iterator,
+        # after generating a rich iterator from a 'transfer' rich iterator,
         # the latter can no longer be used
         for ri in self.rich_iters():
             ri2 = ri.map(op.neg)
@@ -439,7 +439,7 @@ class ExclusiveRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
             self.assertRaises(RuntimeError, func, iterator)
 
 
-class ExclusiveRewindableRichIteratorTests(ExclusiveRichIteratorTests):
+class TransferRewindableRichIteratorTests(TransferRichIteratorTests):
 
     rewindable = True
 

@@ -12,6 +12,22 @@ except AttributeError:  # pragma: no cover
 __all__ = ['rich_iter']
 
 
+class rich_iter(object):
+
+    def __new__(cls, iterable, rewindable=False, state_policy='share'):
+        cls = RewindableRichIterator if rewindable else RichIterator
+        return cls(iterable, state_policy)
+
+    @classmethod
+    def count(cls, start=0, step=1, rewindable=False, state_policy='share'):
+        return cls(it.count(start, step), rewindable, state_policy)
+
+    @classmethod
+    def repeat(cls, obj, times=None, rewindable=False, state_policy='share'):
+        i = it.repeat(obj, times) if times is not None else it.repeat(obj)
+        return cls(i, rewindable, state_policy)
+
+
 def make_py2_compatible(cls):
     def swap(py3_name, py2_name):
         if hasattr(cls, py3_name):  # pragma: no cover
@@ -22,6 +38,20 @@ def make_py2_compatible(cls):
         swap('__bool__', '__nonzero__')
         swap('__truediv__', '__div__')
     return cls
+
+
+class RichIteratorChain(object):
+
+    __slots__ = ('_ri',)
+
+    def __init__(self, rich_iterator):
+        self._ri = rich_iterator
+
+    def __call__(self, *iterables):
+        return self._ri._wrap(it.chain, self._ri._it, *iterables)
+
+    def from_iterable(self):
+        return self._ri._wrap(it.chain.from_iterable, self._ri._it)
 
 
 @make_py2_compatible
@@ -122,9 +152,7 @@ class RichIterator(object):
     def accumulate(self, func=operator.add):
         return self._wrap(accumulate, self._it, func)
 
-    @property
-    def chain(self):
-        return RichIteratorChain(self)
+    chain = property(RichIteratorChain)
 
     def compress(self, selectors):
         return self._wrap(it.compress, self._it, selectors)
@@ -173,18 +201,18 @@ class RichIterator(object):
     def combinations_with_replacement(self, r):
         return self._wrap(it.combinations_with_replacement, self._it, r)
 
-    def _wrap_shared(self, func, *args, **kwargs):
+    def _wrap_share(self, func, *args, **kwargs):
         return self.__class__(func(*args, **kwargs), self._state_policy)
 
-    def _wrap_exclusive(self, func, *args, **kwargs):
+    def _wrap_transfer(self, func, *args, **kwargs):
         self._it = RuntimeErrorIterator
         return self.__class__(func(*args, **kwargs), self._state_policy)
 
-    def _wrap_mutable(self, func, *args, **kwargs):
+    def _wrap_own(self, func, *args, **kwargs):
         self._it = func(*args, **kwargs)
         return self
 
-    def _wrap_immutable(self, func, *args, **kwargs):
+    def _wrap_split(self, func, *args, **kwargs):
         _it = self._it
         _it_idx = 0 if args[0] is _it else 1 if args[1] is _it else None
         if _it_idx is not None:
@@ -192,20 +220,6 @@ class RichIterator(object):
             args = list(args)
             args[_it_idx] = new_it
         return self.__class__(func(*args, **kwargs), self._state_policy)
-
-
-class RichIteratorChain(object):
-
-    __slots__ = ('_ri',)
-
-    def __init__(self, rich_iterator):
-        self._ri = rich_iterator
-
-    def __call__(self, *iterables):
-        return self._ri._wrap(it.chain, self._ri._it, *iterables)
-
-    def from_iterable(self):
-        return self._ri._wrap(it.chain.from_iterable, self._ri._it)
 
 
 @make_py2_compatible
@@ -256,19 +270,3 @@ class RuntimeErrorIterator:
 
 
 RuntimeErrorIterator = RuntimeErrorIterator()
-
-
-class rich_iter(object):
-
-    def __new__(cls, iterable, rewindable=False, state_policy='shared'):
-        cls = RewindableRichIterator if rewindable else RichIterator
-        return cls(iterable, state_policy)
-
-    @classmethod
-    def count(cls, start=0, step=1, rewindable=False, state_policy='shared'):
-        return cls(it.count(start, step), rewindable, state_policy)
-
-    @classmethod
-    def repeat(cls, obj, times=None, rewindable=False, state_policy='shared'):
-        return cls(it.repeat(obj, times) if times is not None else
-                   it.repeat(obj), rewindable, state_policy)
