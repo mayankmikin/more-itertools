@@ -203,36 +203,38 @@ class RichIteratorChain(object):
         return self._ri._wrap0(it.chain.from_iterable)
 
 
-class RewindableRichIterable(AbstractRichIterator):
-
-    __slots__ = AbstractRichIterator.__slots__ + ('_iterable',)
-
-    def __init__(self, iterable):
-        self._iterable = iterable
-        super(RewindableRichIterable, self).__init__(iterable)
-
-    def rewind(self):
-        self._it = iter(self._iterable)
-        return self
-
-
 @make_py2_compatible
 class RewindableRichIterator(AbstractRichIterator):
 
-    __slots__ = AbstractRichIterator.__slots__ + ('_seen',)
+    __slots__ = AbstractRichIterator.__slots__ + ('_arg', '_seen', '_next')
 
     def __init__(self, iterable):
-        self._seen = []
         super(RewindableRichIterator, self).__init__(iterable)
+        super_self = super(RewindableRichIterator, self)
+        super_next = super_self.__next__ if six.PY3 else super_self.next
+        if self._it is iterable:
+            self._arg = None
+            self._seen = []
+
+            def _next(super_next=super_next, append=self._seen.append):
+                value = super_next()
+                append(value)
+                return value
+            self._next = _next
+        else:
+            self._arg = iterable
+            self._seen = None
+            self._next = super_next
 
     def __next__(self):
-        value = next(self._it)
-        self._seen.append(value)
-        return value
+        return self._next()
 
     def rewind(self):
-        self._it = it.chain(self._seen[:], self._it)
-        del self._seen[:]
+        if self._seen is None:
+            self._it = iter(self._arg)
+        else:
+            self._it = it.chain(self._seen[:], self._it)
+            del self._seen[:]
         return self
 
 
@@ -256,20 +258,19 @@ class ExclusiveRichIteratorMixin(object):
         return self.__class__(iterator)
 
 
-class ExclusiveRewindableRichIterable(RewindableRichIterable):
-
-    def _from_iterator(self, iterator):
-        self.rewind()
-        return self.__class__(iterator)
-
-
-class ExclusiveRewindableRichIterator(ExclusiveRichIteratorMixin,
-                                      RewindableRichIterator):
+class ExclusiveRewindableRichIterator(RewindableRichIterator):
 
     def rewind(self):
         if isinstance(self._it, RuntimeErrorIterator):
             raise RuntimeError('iterator can no longer be used')
         return super(ExclusiveRewindableRichIterator, self).rewind()
+
+    def _from_iterator(self, iterator):
+        if self._arg is None:
+            self._it = RuntimeErrorIterator()
+        else:
+            self.rewind()
+        return self.__class__(iterator)
 
 
 @make_py2_compatible
@@ -282,48 +283,29 @@ class RuntimeErrorIterator:
         raise RuntimeError('iterator can no longer be used')
 
 
-def register_rich_iterator(name, state, is_rewindable=False, is_iterator=None):
-    bases = []
-    if state == 'shared':
-        bases.append(SharedRichIteratorMixin)
-    elif state == 'mutable':
-        bases.append(MutableRichIteratorMixin)
-    elif state == 'exclusive':
-        bases.append(ExclusiveRichIteratorMixin)
-
-    if is_rewindable:
-        key = (state, is_iterator)
-        if is_iterator:
-            bases.append(RewindableRichIterator)
-        else:
-            bases.append(RewindableRichIterable)
-    else:
-        key = state
-        bases.append(AbstractRichIterator)
-    REGISTRY[key] = type(name, tuple(bases), {'__module__': __name__})
+def register_rich_iterator(name, state, rewindable):
+    bases = (
+        SharedRichIteratorMixin if state == 'shared' else
+        MutableRichIteratorMixin if state == 'mutable' else
+        ExclusiveRichIteratorMixin if state == 'exclusive' else None,
+        RewindableRichIterator if rewindable else AbstractRichIterator
+    )
+    REGISTRY[state, rewindable] = type(name, bases, {'__module__': __name__})
 
 
 REGISTRY = {}
-register_rich_iterator('SharedRichIterator', 'shared')
-register_rich_iterator('SharedRewindableRichIterator', 'shared', True, True)
-register_rich_iterator('SharedRewindableRichIterable', 'shared', True, False)
-register_rich_iterator('MutableRichIterator', 'mutable')
-register_rich_iterator('MutableRewindableRichIterator', 'mutable', True, True)
-register_rich_iterator('MutableRewindableRichIterable', 'mutable', True, False)
-register_rich_iterator('ExclusiveRichIterator', 'exclusive')
+register_rich_iterator('SharedRichIterator', 'shared', False)
+register_rich_iterator('SharedRewindableRichIterator', 'shared', True)
+register_rich_iterator('MutableRichIterator', 'mutable', False)
+register_rich_iterator('MutableRewindableRichIterator', 'mutable', True)
+register_rich_iterator('ExclusiveRichIterator', 'exclusive', False)
 REGISTRY['exclusive', True] = ExclusiveRewindableRichIterator
-REGISTRY['exclusive', False] = ExclusiveRewindableRichIterable
 
 
 class rich_iter(object):
 
     def __new__(cls, iterable, rewindable=False, state='shared'):
-        if not rewindable:
-            factory = REGISTRY[state]
-        else:
-            is_iterator = iter(iterable) is iterable
-            factory = REGISTRY[state, is_iterator]
-        return factory(iterable)
+        return REGISTRY[state, rewindable](iterable)
 
     @classmethod
     def count(cls, start=0, step=1, rewindable=False, state='shared'):
