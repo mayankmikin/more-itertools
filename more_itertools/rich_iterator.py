@@ -175,9 +175,6 @@ class AbstractRichIterator(object):
     def combinations_with_replacement(self, r):
         return self._wrap0(it.combinations_with_replacement, r)
 
-    def rewind(self):
-        raise NotImplementedError('rewind is not supported for this iterator')
-
     def _wrap0(self, func, *args, **kwargs):
         return self._from_iterator(func(self._it, *args, **kwargs))
 
@@ -264,7 +261,8 @@ class ExclusiveRichIteratorMixin(object):
         return self.__class__(iterator)
 
 
-class ExclusiveRewindableRichIterator(RewindableRichIterator):
+class ExclusiveRewindableRichIterator(ExclusiveRichIteratorMixin,
+                                      RewindableRichIterator):
 
     __slots__ = ()
 
@@ -272,13 +270,6 @@ class ExclusiveRewindableRichIterator(RewindableRichIterator):
         if self._it is _RuntimeErrorIterator:
             raise RuntimeError('iterator can no longer be used')
         return super(ExclusiveRewindableRichIterator, self).rewind()
-
-    def _from_iterator(self, iterator):
-        if self._arg is None:
-            self._it = _RuntimeErrorIterator
-        else:
-            self.rewind()
-        return self.__class__(iterator)
 
 
 @make_py2_compatible
