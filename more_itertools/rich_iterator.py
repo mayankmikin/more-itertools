@@ -1,5 +1,4 @@
 import itertools as it
-import functools
 import operator
 
 import six
@@ -25,29 +24,6 @@ def make_py2_compatible(cls):
     return cls
 
 
-def add_swapped_operators(cls):
-    for name in 'add', 'mul', 'pow':
-        add_swapped_method(cls, name)
-    return cls
-
-
-def add_swapped_method(cls, name):
-    method_name = '__{}__'.format(name)
-    rmethod_name = '__r{}__'.format(name)
-
-    @functools.wraps(getattr(cls, method_name))
-    def rmethod(self, other):
-        if not isinstance(other, cls):
-            other = self.__class__(other, self._state)
-        return getattr(other, method_name)(self)
-
-    rmethod.__name__ = rmethod_name
-    if hasattr(rmethod, '__qualname__'):  # pragma: no cover
-        rmethod.__qualname__ = rmethod.__qualname__.replace(name, 'r' + name)
-    setattr(cls, rmethod_name, rmethod)
-
-
-@add_swapped_operators
 @make_py2_compatible
 class RichIterator(object):
     """Iterable wrapper exposing several convenience methods and operators."""
@@ -100,8 +76,14 @@ class RichIterator(object):
     def __add__(self, other):
         return self.chain(other)
 
+    def __radd__(self, other):
+        return self.__class__(other, self._state).chain(self)
+
     def __mul__(self, other):
         return self.zip(other)
+
+    def __rmul__(self, other):
+        return self.__class__(other, self._state).zip(self)
 
     def __or__(self, func):
         return self.map(func)
@@ -121,6 +103,9 @@ class RichIterator(object):
     def __pow__(self, other):
         return (self.product(repeat=other) if isinstance(other, int) else
                 self.product(other))
+
+    def __rpow__(self, other):
+        return self.__class__(other, self._state).product(self)
 
     def __mod__(self, r):
         return self.permutations(r)
