@@ -336,6 +336,10 @@ class CommonRichIteratorTests:
             with self.assertRaises(AttributeError):
                 ri.foo = None
 
+    def test_get_state(self):
+        for ri in self.rich_iters():
+            self.assertEqual(ri.state, self.state)
+
 
 class SharedRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
 
