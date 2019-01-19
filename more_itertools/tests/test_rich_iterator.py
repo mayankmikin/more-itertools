@@ -1,7 +1,7 @@
 import copy
-import functools
-import operator
+import operator as op
 import unittest
+from functools import partial
 from itertools import islice
 
 from six.moves import range
@@ -95,7 +95,7 @@ class CommonRichIteratorTests:
 
     def test_or(self):
         for ri in self.rich_iters():
-            self.assertEqual(list(ri | operator.neg), [-1, -2, -3, -4, -5])
+            self.assertEqual(list(ri | op.neg), [-1, -2, -3, -4, -5])
 
     def test_and(self):
         for ri in self.rich_iters():
@@ -155,7 +155,7 @@ class CommonRichIteratorTests:
                               ('B', 'B'), ('B', 'C'), ('C', 'C')])
 
     def test_count(self):
-        count = functools.partial(rich_iter.count, **self.factory_kwargs())
+        count = partial(rich_iter.count, **self.factory_kwargs())
 
         ri = count()
         self.assertEqual(list(islice(ri, 5)), [0, 1, 2, 3, 4])
@@ -170,7 +170,7 @@ class CommonRichIteratorTests:
         self.assertEqual(list(islice(ri, 5)), [10, 12, 14, 16, 18])
 
     def test_repeat(self):
-        repeat = functools.partial(rich_iter.repeat, **self.factory_kwargs())
+        repeat = partial(rich_iter.repeat, **self.factory_kwargs())
 
         ri = repeat(10, 3)
         self.assertEqual(list(ri), [10, 10, 10])
@@ -187,7 +187,7 @@ class CommonRichIteratorTests:
         for ri in self.rich_iters():
             self.assertEqual(list(ri.accumulate()), [1, 3, 6, 10, 15])
         for ri in self.rich_iters():
-            self.assertEqual(list(ri.accumulate(operator.mul)),
+            self.assertEqual(list(ri.accumulate(op.mul)),
                              [1, 2, 6, 24, 120])
 
     def test_chain(self):
@@ -238,7 +238,7 @@ class CommonRichIteratorTests:
 
     def test_map(self):
         for ri in self.rich_iters():
-            self.assertEqual(list(ri.map(operator.neg)), [-1, -2, -3, -4, -5])
+            self.assertEqual(list(ri.map(op.neg)), [-1, -2, -3, -4, -5])
         for ri in self.rich_iters():
             self.assertEqual(list(ri.map(pow, reversed(range(1, 6)))),
                              [1, 16, 27, 16, 5])
@@ -345,14 +345,14 @@ class SharedRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
     def test_state(self):
         # iterating the mapped iterator exhausts the original one too
         for ri in self.rich_iters():
-            ri2 = ri.map(operator.neg)
+            ri2 = ri.map(op.neg)
             self.assertIs(ri2.__class__, ri.__class__)
             self.assertEqual(list(ri2), [-1, -2, -3, -4, -5])
             self.assertEqual(list(ri2), [])
             self.assertEqual(list(ri), [])
         # iterating the original iterator exhausts the mapped one too
         for ri in self.rich_iters():
-            ri2 = ri.map(operator.neg)
+            ri2 = ri.map(op.neg)
             self.assertIs(ri2.__class__, ri.__class__)
             self.assertEqual(list(ri), [1, 2, 3, 4, 5])
             self.assertEqual(list(ri), [])
@@ -372,7 +372,7 @@ class MutableRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
     def test_state(self):
         # any operation mutates the original rich iterator
         for ri in self.rich_iters():
-            ri2 = ri.map(operator.neg)
+            ri2 = ri.map(op.neg)
             self.assertIs(ri2.__class__, ri.__class__)
             self.assertIs(ri, ri2)
             self.assertEqual(list(ri), [-1, -2, -3, -4, -5])
@@ -394,16 +394,18 @@ class ExclusiveRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
         # after generating a rich iterator from an exclusive rich iterator,
         # the latter can no longer be used
         for ri in self.rich_iters():
-            ri2 = ri.map(operator.neg)
+            ri2 = ri.map(op.neg)
             self.assertIs(ri2.__class__, ri.__class__)
-            self.assertRaises(RuntimeError, next, ri)
-            self.assertRaises(RuntimeError, list, ri)
-            self.assertRaises(RuntimeError, bool, ri)
-            self.assertRaises(RuntimeError, next, ri.filter(is_odd))
-
-            self.assertIs(ri2.__class__, ri.__class__)
+            self.assertIteratorCannotBeUsed(ri)
             self.assertEqual(list(ri2), [-1, -2, -3, -4, -5])
             self.assertEqual(list(ri2), [])
+
+    def assertIteratorCannotBeUsed(self, iterator):
+        for func in (next, list, bool, copy.copy,
+                     op.methodcaller('map', op.neg),
+                     op.methodcaller('filter', is_odd),
+                     op.methodcaller('tee')):
+            self.assertRaises(RuntimeError, func, iterator)
 
 
 class ExclusiveRewindableRichIteratorTests(ExclusiveRichIteratorTests):
@@ -412,14 +414,9 @@ class ExclusiveRewindableRichIteratorTests(ExclusiveRichIteratorTests):
 
     def test_state(self):
         for ri in self.rich_iters():
-            ri2 = ri.map(operator.neg)
+            ri2 = ri.map(op.neg)
             self.assertIs(ri2.__class__, ri.__class__)
-
-            self.assertRaises(RuntimeError, next, ri)
-            self.assertRaises(RuntimeError, list, ri)
-            self.assertRaises(RuntimeError, bool, ri)
-            self.assertRaises(RuntimeError, next, ri.map(operator.neg))
-            self.assertRaises(RuntimeError, next, ri.filter(is_odd))
+            self.assertIteratorCannotBeUsed(ri)
             self.assertRaises(RuntimeError, ri.rewind)
 
             self.assertEqual(list(ri2), [-1, -2, -3, -4, -5])

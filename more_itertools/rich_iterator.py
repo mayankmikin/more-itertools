@@ -257,7 +257,7 @@ class ExclusiveRichIteratorMixin(object):
     __slots__ = ()
 
     def _from_iterator(self, iterator):
-        self._it = _RuntimeErrorIterator
+        self._it = RuntimeErrorIterator
         return self.__class__(iterator)
 
 
@@ -267,7 +267,7 @@ class ExclusiveRewindableRichIterator(ExclusiveRichIteratorMixin,
     __slots__ = ()
 
     def rewind(self):
-        if self._it is _RuntimeErrorIterator:
+        if self._it is RuntimeErrorIterator:
             raise RuntimeError('iterator can no longer be used')
         return super(ExclusiveRewindableRichIterator, self).rewind()
 
@@ -276,13 +276,13 @@ class ExclusiveRewindableRichIterator(ExclusiveRichIteratorMixin,
 class RuntimeErrorIterator:
 
     def __iter__(self):
-        return self
+        raise RuntimeError('iterator can no longer be used')
 
     def __next__(self):
         raise RuntimeError('iterator can no longer be used')
 
 
-_RuntimeErrorIterator = RuntimeErrorIterator()
+RuntimeErrorIterator = RuntimeErrorIterator()
 
 
 def register_rich_iterator(name, state, rewindable):
