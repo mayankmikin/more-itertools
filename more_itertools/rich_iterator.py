@@ -1,3 +1,4 @@
+import abc
 import itertools as it
 import functools
 import operator
@@ -27,29 +28,30 @@ def make_py2_compatible(cls):
 
 def add_swapped_operators(cls):
     for name in 'add', 'mul', 'pow':
-        method = getattr(cls, '__{}__'.format(name), None)
-        if method:
-            add_swapped_method(cls, name, method)
+        add_swapped_method(cls, name)
     return cls
 
 
-def add_swapped_method(cls, name, method):
-    @functools.wraps(method)
-    def swapped(self, other):
-        if not isinstance(other, cls):
-            other = cls(other)
-        return method(other, self)
+def add_swapped_method(cls, name):
+    method_name = '__{}__'.format(name)
+    rmethod_name = '__r{}__'.format(name)
 
-    swapped_name = '__r{}__'.format(name)
-    swapped.__name__ = swapped_name
-    if hasattr(swapped, '__qualname__'):  # pragma: no cover
-        swapped.__qualname__ = swapped.__qualname__.replace(name, 'r' + name)
-    setattr(cls, swapped_name, swapped)
+    @functools.wraps(getattr(cls, method_name))
+    def rmethod(self, other):
+        if not isinstance(other, cls):
+            other = self.__class__(other)
+        return getattr(other, method_name)(self)
+
+    rmethod.__name__ = rmethod_name
+    if hasattr(rmethod, '__qualname__'):  # pragma: no cover
+        rmethod.__qualname__ = rmethod.__qualname__.replace(name, 'r' + name)
+    setattr(cls, rmethod_name, rmethod)
 
 
 @add_swapped_operators
 @make_py2_compatible
-class RichIterator(object):
+@six.add_metaclass(abc.ABCMeta)
+class AbstractRichIterator(object):
     """Iterable wrapper exposing several convenience methods and operators."""
 
     __slots__ = ('_it',)
@@ -173,14 +175,18 @@ class RichIterator(object):
     def combinations_with_replacement(self, r):
         return self._wrap0(it.combinations_with_replacement, r)
 
+    def rewind(self):
+        raise NotImplementedError('rewind is not supported for this iterator')
+
     def _wrap0(self, func, *args, **kwargs):
         return self._from_iterator(func(self._it, *args, **kwargs))
 
     def _wrap1(self, func, *args):
         return self._from_iterator(func(args[0], self._it, *args[1:]))
 
+    @abc.abstractmethod
     def _from_iterator(self, iterator):
-        return self.__class__(iterator)
+        """Return a rich iterator from the given ``iterator``"""
 
 
 class RichIteratorChain(object):
@@ -197,9 +203,9 @@ class RichIteratorChain(object):
         return self._ri._wrap0(it.chain.from_iterable)
 
 
-class RewindableRichIterable(RichIterator):
+class RewindableRichIterable(AbstractRichIterator):
 
-    __slots__ = RichIterator.__slots__ + ('_iterable',)
+    __slots__ = AbstractRichIterator.__slots__ + ('_iterable',)
 
     def __init__(self, iterable):
         self._iterable = iterable
@@ -211,9 +217,9 @@ class RewindableRichIterable(RichIterator):
 
 
 @make_py2_compatible
-class RewindableRichIterator(RichIterator):
+class RewindableRichIterator(AbstractRichIterator):
 
-    __slots__ = RichIterator.__slots__ + ('_seen',)
+    __slots__ = AbstractRichIterator.__slots__ + ('_seen',)
 
     def __init__(self, iterable):
         self._seen = []
@@ -230,27 +236,45 @@ class RewindableRichIterator(RichIterator):
         return self
 
 
-class MutableRichIteratorMixin:
+class SharedRichIteratorMixin(object):
+
+    def _from_iterator(self, iterator):
+        return self.__class__(iterator)
+
+
+class MutableRichIteratorMixin(object):
 
     def _from_iterator(self, iterator):
         self._it = iterator
         return self
 
 
-REGISTRY = {
-    'shared': RichIterator,
-    (True, 'shared'): RewindableRichIterator,
-    (False, 'shared'): RewindableRichIterable,
+def register_rich_iterator(name, state, is_rewindable=False, is_iterator=None):
+    bases = []
+    if state == 'shared':
+        bases.append(SharedRichIteratorMixin)
+    elif state == 'mutable':
+        bases.append(MutableRichIteratorMixin)
 
-    'mutable': type('MutableRichIterator',
-                    (MutableRichIteratorMixin, RichIterator), {}),
-    (True, 'mutable'): type('MutableRewindableRichIterator',
-                            (MutableRichIteratorMixin,
-                             RewindableRichIterator), {}),
-    (False, 'mutable'): type('MutableRewindableRichIterable',
-                             (MutableRichIteratorMixin,
-                              RewindableRichIterator), {}),
-}
+    if is_rewindable:
+        key = (state, is_iterator)
+        if is_iterator:
+            bases.append(RewindableRichIterator)
+        else:
+            bases.append(RewindableRichIterable)
+    else:
+        key = state
+        bases.append(AbstractRichIterator)
+    REGISTRY[key] = type(name, tuple(bases), {'__module__': __name__})
+
+
+REGISTRY = {}
+register_rich_iterator('SharedRichIterator', 'shared')
+register_rich_iterator('SharedRewindableRichIterator', 'shared', True, True)
+register_rich_iterator('SharedRewindableRichIterable', 'shared', True, False)
+register_rich_iterator('MutableRichIterator', 'mutable')
+register_rich_iterator('MutableRewindableRichIterator', 'mutable', True, True)
+register_rich_iterator('MutableRewindableRichIterable', 'mutable', True, False)
 
 
 class rich_iter(object):
@@ -260,7 +284,7 @@ class rich_iter(object):
             factory = REGISTRY[state]
         else:
             is_iterator = iter(iterable) is iterable
-            factory = REGISTRY[is_iterator, state]
+            factory = REGISTRY[state, is_iterator]
         return factory(iterable)
 
     @classmethod

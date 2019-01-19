@@ -13,18 +13,24 @@ is_odd = lambda x: x % 2 == 1
 less_than_3 = lambda x: x < 3
 
 
-class RichIteratorTests(unittest.TestCase):
+class CommonRichIteratorTests:
 
-    factory_kwargs = {}
+    rewindable = None
+    state = None
 
     @classmethod
-    def rich_iters(cls, iterable=range(1, 6)):
-        return list(rich_iter(i, **cls.factory_kwargs) for i in [
-            iterable,
-            list(iterable),
-            iter(iterable),
-            iter(list(iterable)),
-        ])
+    def factory_kwargs(cls):
+        assert cls.rewindable is not None and cls.state is not None
+        return dict(rewindable=cls.rewindable, state=cls.state)
+
+    @classmethod
+    def rich_iters(cls, iterable=range(1, 6), iterators=None):
+        iterables = []
+        if iterators is not True:
+            iterables.extend([iterable, list(iterable)])
+        if iterators is not False:
+            iterables.extend([iter(iterable), iter(list(iterable))])
+        return list(rich_iter(i, **cls.factory_kwargs()) for i in iterables)
 
     def test_iteration(self):
         """Test basic iteration"""
@@ -152,7 +158,7 @@ class RichIteratorTests(unittest.TestCase):
                               ('B', 'B'), ('B', 'C'), ('C', 'C')])
 
     def test_count(self):
-        count = functools.partial(rich_iter.count, **self.factory_kwargs)
+        count = functools.partial(rich_iter.count, **self.factory_kwargs())
 
         ri = count()
         self.assertEqual(list(islice(ri, 5)), [0, 1, 2, 3, 4])
@@ -167,7 +173,7 @@ class RichIteratorTests(unittest.TestCase):
         self.assertEqual(list(islice(ri, 5)), [10, 12, 14, 16, 18])
 
     def test_repeat(self):
-        repeat = functools.partial(rich_iter.repeat, **self.factory_kwargs)
+        repeat = functools.partial(rich_iter.repeat, **self.factory_kwargs())
 
         ri = repeat(10, 3)
         self.assertEqual(list(ri), [10, 10, 10])
@@ -315,39 +321,51 @@ class RichIteratorTests(unittest.TestCase):
                              [('A', 'A'), ('A', 'B'), ('A', 'C'),
                               ('B', 'B'), ('B', 'C'), ('C', 'C')])
 
+    def test_rewind(self):
+        for ri in self.rich_iters():
+            if not self.rewindable:
+                self.assertRaises(NotImplementedError, ri.rewind)
+            else:
+                self.assertEqual(next(ri), 1)
+                self.assertEqual(next(ri), 2)
+                ri.rewind()
+                self.assertEqual(list(ri), [1, 2, 3, 4, 5])
+                ri.rewind()
+                self.assertEqual(next(ri), 1)
+                self.assertEqual(next(ri), 2)
+
+
+class SharedRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
+
+    rewindable = False
+    state = 'shared'
+
     def test_state(self):
         # iterating the mapped iterator exhausts the original one too
         for ri in self.rich_iters():
             ri2 = ri.map(operator.neg)
+            self.assertIs(ri2.__class__, ri.__class__)
             self.assertEqual(list(ri2), [-1, -2, -3, -4, -5])
             self.assertEqual(list(ri2), [])
             self.assertEqual(list(ri), [])
         # iterating the original iterator exhausts the mapped one too
         for ri in self.rich_iters():
             ri2 = ri.map(operator.neg)
+            self.assertIs(ri2.__class__, ri.__class__)
             self.assertEqual(list(ri), [1, 2, 3, 4, 5])
             self.assertEqual(list(ri), [])
             self.assertEqual(list(ri2), [])
 
 
-class RewindableRichIteratorTests(RichIteratorTests):
+class SharedRewindableRichIteratorTests(SharedRichIteratorTests):
 
-    factory_kwargs = dict(rewindable=True)
-
-    def test_rewind(self):
-        for ri in self.rich_iters():
-            self.assertEqual(next(ri), 1)
-            self.assertEqual(next(ri), 2)
-            ri.rewind()
-            self.assertEqual(list(ri), [1, 2, 3, 4, 5])
-            ri.rewind()
-            self.assertEqual(next(ri), 1)
-            self.assertEqual(next(ri), 2)
+    rewindable = True
 
 
-class MutableRichIteratorTests(RichIteratorTests):
+class MutableRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
 
-    factory_kwargs = dict(state='mutable')
+    rewindable = False
+    state = 'mutable'
 
     def test_state(self):
         # any operation mutates the original rich iterator
@@ -359,6 +377,6 @@ class MutableRichIteratorTests(RichIteratorTests):
             self.assertEqual(list(ri2), [])
 
 
-class MutableRewindableRichIteratorTests(MutableRichIteratorTests,
-                                         RewindableRichIteratorTests):
-    factory_kwargs = dict(rewindable=True, state='mutable')
+class MutableRewindableRichIteratorTests(MutableRichIteratorTests):
+
+    rewindable = True
