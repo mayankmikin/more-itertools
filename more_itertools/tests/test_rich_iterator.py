@@ -16,12 +16,12 @@ less_than_3 = lambda x: x < 3
 class CommonRichIteratorTests:
 
     rewindable = None
-    state = None
+    state_policy = None
 
     @classmethod
     def factory_kwargs(cls):
-        assert cls.rewindable is not None and cls.state is not None
-        return dict(rewindable=cls.rewindable, state=cls.state)
+        assert cls.rewindable is not None and cls.state_policy is not None
+        return dict(rewindable=cls.rewindable, state_policy=cls.state_policy)
 
     @classmethod
     def rich_iters(cls, iterable=range(1, 6)):
@@ -336,17 +336,17 @@ class CommonRichIteratorTests:
             with self.assertRaises(AttributeError):
                 ri.foo = None
 
-    def test_get_state(self):
+    def test_get_state_policy(self):
         for ri in self.rich_iters():
-            self.assertEqual(ri.state, self.state)
+            self.assertEqual(ri.state_policy, self.state_policy)
 
 
 class SharedRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
 
     rewindable = False
-    state = 'shared'
+    state_policy = 'shared'
 
-    def test_state(self):
+    def test_state_policy(self):
         # iterating the mapped iterator exhausts the original one too
         for ri in self.rich_iters():
             ri2 = ri.map(op.neg)
@@ -371,9 +371,9 @@ class SharedRewindableRichIteratorTests(SharedRichIteratorTests):
 class MutableRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
 
     rewindable = False
-    state = 'mutable'
+    state_policy = 'mutable'
 
-    def test_state(self):
+    def test_state_policy(self):
         # any operation mutates the original rich iterator
         for ri in self.rich_iters():
             ri2 = ri.map(op.neg)
@@ -392,9 +392,9 @@ class MutableRewindableRichIteratorTests(MutableRichIteratorTests):
 class ImmutableRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
 
     rewindable = False
-    state = 'immutable'
+    state_policy = 'immutable'
 
-    def test_state(self):
+    def test_state_policy(self):
         # iterating the mapped iterator does not iterate the original one
         for ri in self.rich_iters():
             ri2 = ri.map(op.neg)
@@ -419,9 +419,9 @@ class ImmutableRewindableRichIteratorTests(ImmutableRichIteratorTests):
 class ExclusiveRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
 
     rewindable = False
-    state = 'exclusive'
+    state_policy = 'exclusive'
 
-    def test_state(self):
+    def test_state_policy(self):
         # after generating a rich iterator from an exclusive rich iterator,
         # the latter can no longer be used
         for ri in self.rich_iters():
@@ -443,7 +443,7 @@ class ExclusiveRewindableRichIteratorTests(ExclusiveRichIteratorTests):
 
     rewindable = True
 
-    def test_state(self):
+    def test_state_policy(self):
         for ri in self.rich_iters():
             ri2 = ri.map(op.neg)
             self.assertIs(ri2.__class__, ri.__class__)
@@ -456,11 +456,11 @@ class ExclusiveRewindableRichIteratorTests(ExclusiveRichIteratorTests):
             self.assertEqual(list(ri2), [-1, -2, -3, -4, -5])
 
 
-class InvalidStateTest(unittest.TestCase):
+class InvalidStatePolicyTest(unittest.TestCase):
 
-    def test_state(self):
-        for state in 'invalid', None, -1:
+    def test_state_policy(self):
+        for state_policy in 'invalid', None, -1:
             self.assertRaises(ValueError, rich_iter, range(10),
-                              rewindable=True, state=state)
+                              rewindable=True, state_policy=state_policy)
             self.assertRaises(ValueError, rich_iter, range(10),
-                              rewindable=False, state=state)
+                              rewindable=False, state_policy=state_policy)

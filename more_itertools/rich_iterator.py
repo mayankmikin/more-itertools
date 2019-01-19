@@ -28,23 +28,23 @@ def make_py2_compatible(cls):
 class RichIterator(object):
     """Iterable wrapper exposing several convenience methods and operators."""
 
-    __slots__ = ('_it', '_state', '_wrap')
+    __slots__ = ('_it', '_state_policy', '_wrap')
 
-    def __init__(self, iterable, state):
+    def __init__(self, iterable, state_policy):
         self._it = iter(iterable)
-        self.state = state
+        self.state_policy = state_policy
 
     @property
-    def state(self):
-        return self._state
+    def state_policy(self):
+        return self._state_policy
 
-    @state.setter
-    def state(self, value):
+    @state_policy.setter
+    def state_policy(self, value):
         try:
-            self._state = value
+            self._state_policy = value
             self._wrap = getattr(self, '_wrap_{}'.format(value))
         except AttributeError:
-            raise ValueError('Invalid state {!r}'.format(value))
+            raise ValueError('Invalid state_policy {!r}'.format(value))
 
     def __iter__(self):
         return self
@@ -71,19 +71,19 @@ class RichIterator(object):
 
     def __copy__(self):
         self._it, new_it = it.tee(self._it)
-        return self.__class__(new_it, self._state)
+        return self.__class__(new_it, self._state_policy)
 
     def __add__(self, other):
         return self.chain(other)
 
     def __radd__(self, other):
-        return self.__class__(other, self._state).chain(self)
+        return self.__class__(other, self._state_policy).chain(self)
 
     def __mul__(self, other):
         return self.zip(other)
 
     def __rmul__(self, other):
-        return self.__class__(other, self._state).zip(self)
+        return self.__class__(other, self._state_policy).zip(self)
 
     def __or__(self, func):
         return self.map(func)
@@ -105,7 +105,7 @@ class RichIterator(object):
                 self.product(other))
 
     def __rpow__(self, other):
-        return self.__class__(other, self._state).product(self)
+        return self.__class__(other, self._state_policy).product(self)
 
     def __mod__(self, r):
         return self.permutations(r)
@@ -152,7 +152,7 @@ class RichIterator(object):
         return self._wrap(it.takewhile, predicate, self._it)
 
     def tee(self, n=2):
-        return tuple(self.__class__(iterator, self._state)
+        return tuple(self.__class__(iterator, self._state_policy)
                      for iterator in it.tee(self._it, n))
 
     def zip(self, *iterables):
@@ -174,11 +174,11 @@ class RichIterator(object):
         return self._wrap(it.combinations_with_replacement, self._it, r)
 
     def _wrap_shared(self, func, *args, **kwargs):
-        return self.__class__(func(*args, **kwargs), self._state)
+        return self.__class__(func(*args, **kwargs), self._state_policy)
 
     def _wrap_exclusive(self, func, *args, **kwargs):
         self._it = RuntimeErrorIterator
-        return self.__class__(func(*args, **kwargs), self._state)
+        return self.__class__(func(*args, **kwargs), self._state_policy)
 
     def _wrap_mutable(self, func, *args, **kwargs):
         self._it = func(*args, **kwargs)
@@ -191,15 +191,15 @@ class RichIterator(object):
             self._it, new_it = it.tee(_it)
             args = list(args)
             args[_it_idx] = new_it
-        return self.__class__(func(*args, **kwargs), self._state)
+        return self.__class__(func(*args, **kwargs), self._state_policy)
 
 
 class RichIteratorChain(object):
 
     __slots__ = ('_ri',)
 
-    def __init__(self, rich_iter):
-        self._ri = rich_iter
+    def __init__(self, rich_iterator):
+        self._ri = rich_iterator
 
     def __call__(self, *iterables):
         return self._ri._wrap(it.chain, self._ri._it, *iterables)
@@ -213,8 +213,8 @@ class RewindableRichIterator(RichIterator):
 
     __slots__ = RichIterator.__slots__ + ('_arg', '_seen', '_next')
 
-    def __init__(self, iterable, state):
-        super(RewindableRichIterator, self).__init__(iterable, state)
+    def __init__(self, iterable, state_policy):
+        super(RewindableRichIterator, self).__init__(iterable, state_policy)
         super_self = super(RewindableRichIterator, self)
         super_next = super_self.__next__ if six.PY3 else super_self.next
         if self._it is iterable:
@@ -260,15 +260,15 @@ RuntimeErrorIterator = RuntimeErrorIterator()
 
 class rich_iter(object):
 
-    def __new__(cls, iterable, rewindable=False, state='shared'):
+    def __new__(cls, iterable, rewindable=False, state_policy='shared'):
         cls = RewindableRichIterator if rewindable else RichIterator
-        return cls(iterable, state)
+        return cls(iterable, state_policy)
 
     @classmethod
-    def count(cls, start=0, step=1, rewindable=False, state='shared'):
-        return cls(it.count(start, step), rewindable=rewindable, state=state)
+    def count(cls, start=0, step=1, rewindable=False, state_policy='shared'):
+        return cls(it.count(start, step), rewindable, state_policy)
 
     @classmethod
-    def repeat(cls, object, times=None, rewindable=False, state='shared'):
-        return cls(it.repeat(object, times) if times is not None else
-                   it.repeat(object), rewindable=rewindable, state=state)
+    def repeat(cls, obj, times=None, rewindable=False, state_policy='shared'):
+        return cls(it.repeat(obj, times) if times is not None else
+                   it.repeat(obj), rewindable, state_policy)
