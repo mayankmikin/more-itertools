@@ -240,11 +240,15 @@ class RewindableRichIterator(AbstractRichIterator):
 
 class SharedRichIteratorMixin(object):
 
+    __slots__ = ()
+
     def _from_iterator(self, iterator):
         return self.__class__(iterator)
 
 
 class MutableRichIteratorMixin(object):
+
+    __slots__ = ()
 
     def _from_iterator(self, iterator):
         self._it = iterator
@@ -253,21 +257,25 @@ class MutableRichIteratorMixin(object):
 
 class ExclusiveRichIteratorMixin(object):
 
+    __slots__ = ()
+
     def _from_iterator(self, iterator):
-        self._it = RuntimeErrorIterator()
+        self._it = _RuntimeErrorIterator
         return self.__class__(iterator)
 
 
 class ExclusiveRewindableRichIterator(RewindableRichIterator):
 
+    __slots__ = ()
+
     def rewind(self):
-        if isinstance(self._it, RuntimeErrorIterator):
+        if self._it is _RuntimeErrorIterator:
             raise RuntimeError('iterator can no longer be used')
         return super(ExclusiveRewindableRichIterator, self).rewind()
 
     def _from_iterator(self, iterator):
         if self._arg is None:
-            self._it = RuntimeErrorIterator()
+            self._it = _RuntimeErrorIterator
         else:
             self.rewind()
         return self.__class__(iterator)
@@ -283,6 +291,9 @@ class RuntimeErrorIterator:
         raise RuntimeError('iterator can no longer be used')
 
 
+_RuntimeErrorIterator = RuntimeErrorIterator()
+
+
 def register_rich_iterator(name, state, rewindable):
     bases = (
         SharedRichIteratorMixin if state == 'shared' else
@@ -290,7 +301,8 @@ def register_rich_iterator(name, state, rewindable):
         ExclusiveRichIteratorMixin if state == 'exclusive' else None,
         RewindableRichIterator if rewindable else AbstractRichIterator
     )
-    REGISTRY[state, rewindable] = type(name, bases, {'__module__': __name__})
+    attrs = {'__module__': __name__, '__slots__': ()}
+    REGISTRY[state, rewindable] = type(name, bases, attrs)
 
 
 REGISTRY = {}

@@ -334,6 +334,11 @@ class CommonRichIteratorTests:
                 self.assertEqual(next(ri), 1)
                 self.assertEqual(next(ri), 2)
 
+    def test_slots(self):
+        for ri in self.rich_iters():
+            with self.assertRaises(AttributeError):
+                ri.foo = None
+
 
 class SharedRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
 
