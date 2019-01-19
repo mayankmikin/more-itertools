@@ -249,12 +249,47 @@ class MutableRichIteratorMixin(object):
         return self
 
 
+class ExclusiveRichIteratorMixin(object):
+
+    def _from_iterator(self, iterator):
+        self._it = RuntimeErrorIterator()
+        return self.__class__(iterator)
+
+
+class ExclusiveRewindableRichIterable(RewindableRichIterable):
+
+    def _from_iterator(self, iterator):
+        self.rewind()
+        return self.__class__(iterator)
+
+
+class ExclusiveRewindableRichIterator(ExclusiveRichIteratorMixin,
+                                      RewindableRichIterator):
+
+    def rewind(self):
+        if isinstance(self._it, RuntimeErrorIterator):
+            raise RuntimeError('iterator can no longer be used')
+        return super(ExclusiveRewindableRichIterator, self).rewind()
+
+
+@make_py2_compatible
+class RuntimeErrorIterator:
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        raise RuntimeError('iterator can no longer be used')
+
+
 def register_rich_iterator(name, state, is_rewindable=False, is_iterator=None):
     bases = []
     if state == 'shared':
         bases.append(SharedRichIteratorMixin)
     elif state == 'mutable':
         bases.append(MutableRichIteratorMixin)
+    elif state == 'exclusive':
+        bases.append(ExclusiveRichIteratorMixin)
 
     if is_rewindable:
         key = (state, is_iterator)
@@ -275,6 +310,9 @@ register_rich_iterator('SharedRewindableRichIterable', 'shared', True, False)
 register_rich_iterator('MutableRichIterator', 'mutable')
 register_rich_iterator('MutableRewindableRichIterator', 'mutable', True, True)
 register_rich_iterator('MutableRewindableRichIterable', 'mutable', True, False)
+register_rich_iterator('ExclusiveRichIterator', 'exclusive')
+REGISTRY['exclusive', True] = ExclusiveRewindableRichIterator
+REGISTRY['exclusive', False] = ExclusiveRewindableRichIterable
 
 
 class rich_iter(object):

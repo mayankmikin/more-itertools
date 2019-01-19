@@ -371,6 +371,7 @@ class MutableRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
         # any operation mutates the original rich iterator
         for ri in self.rich_iters():
             ri2 = ri.map(operator.neg)
+            self.assertIs(ri2.__class__, ri.__class__)
             self.assertIs(ri, ri2)
             self.assertEqual(list(ri), [-1, -2, -3, -4, -5])
             self.assertEqual(list(ri), [])
@@ -380,3 +381,67 @@ class MutableRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
 class MutableRewindableRichIteratorTests(MutableRichIteratorTests):
 
     rewindable = True
+
+
+class ExclusiveRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
+
+    rewindable = False
+    state = 'exclusive'
+
+    def test_state(self):
+        # after generating a rich iterator from an exclusive rich iterator,
+        # the latter can no longer be used
+        for ri in self.rich_iters():
+            ri2 = ri.map(operator.neg)
+            self.assertIs(ri2.__class__, ri.__class__)
+            self.assertRaises(RuntimeError, next, ri)
+            self.assertRaises(RuntimeError, list, ri)
+            self.assertRaises(RuntimeError, bool, ri)
+            self.assertRaises(RuntimeError, next, ri.filter(is_odd))
+
+            self.assertIs(ri2.__class__, ri.__class__)
+            self.assertEqual(list(ri2), [-1, -2, -3, -4, -5])
+            self.assertEqual(list(ri2), [])
+
+
+class ExclusiveRewindableRichIteratorTests(ExclusiveRichIteratorTests):
+
+    rewindable = True
+
+    def test_state(self):
+        for ri in self.rich_iters(iterators=True):
+            ri2 = ri.map(operator.neg)
+            self.assertIs(ri2.__class__, ri.__class__)
+
+            self.assertRaises(RuntimeError, next, ri)
+            self.assertRaises(RuntimeError, list, ri)
+            self.assertRaises(RuntimeError, bool, ri)
+            self.assertRaises(RuntimeError, next, ri.map(operator.neg))
+            self.assertRaises(RuntimeError, next, ri.filter(is_odd))
+            self.assertRaises(RuntimeError, ri.rewind)
+
+            self.assertEqual(list(ri2), [-1, -2, -3, -4, -5])
+            self.assertEqual(list(ri2), [])
+            ri2.rewind()
+            self.assertEqual(list(ri2), [-1, -2, -3, -4, -5])
+
+
+class ExclusiveRewindableRichIterableTests(ExclusiveRichIteratorTests):
+
+    rewindable = True
+
+    def test_state(self):
+        for ri in self.rich_iters(iterators=False):
+            ri2 = ri.map(operator.neg)
+            self.assertIs(ri2.__class__, ri.__class__)
+
+            # original iterator is rewinded and can be reused
+            self.assertEqual(list(ri), [1, 2, 3, 4, 5])
+            self.assertEqual(list(ri), [])
+            ri.rewind()
+            self.assertEqual(list(ri), [1, 2, 3, 4, 5])
+
+            self.assertEqual(list(ri2), [-1, -2, -3, -4, -5])
+            self.assertEqual(list(ri2), [])
+            ri2.rewind()
+            self.assertEqual(list(ri2), [-1, -2, -3, -4, -5])
