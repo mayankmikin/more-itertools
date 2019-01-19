@@ -385,6 +385,33 @@ class MutableRewindableRichIteratorTests(MutableRichIteratorTests):
     rewindable = True
 
 
+class ImmutableRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
+
+    rewindable = False
+    state = 'immutable'
+
+    def test_state(self):
+        # iterating the mapped iterator does not iterate the original one
+        for ri in self.rich_iters():
+            ri2 = ri.map(op.neg)
+            self.assertIs(ri2.__class__, ri.__class__)
+            self.assertEqual(list(ri2), [-1, -2, -3, -4, -5])
+            self.assertEqual(list(ri2), [])
+            self.assertEqual(list(ri), [1, 2, 3, 4, 5])
+        # iterating the original iterator does not iterate the mapped one
+        for ri in self.rich_iters():
+            ri2 = ri.map(op.neg)
+            self.assertIs(ri2.__class__, ri.__class__)
+            self.assertEqual(list(ri), [1, 2, 3, 4, 5])
+            self.assertEqual(list(ri), [])
+            self.assertEqual(list(ri2), [-1, -2, -3, -4, -5])
+
+
+class ImmutableRewindableRichIteratorTests(ImmutableRichIteratorTests):
+
+    rewindable = True
+
+
 class ExclusiveRichIteratorTests(unittest.TestCase, CommonRichIteratorTests):
 
     rewindable = False

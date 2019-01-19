@@ -79,7 +79,8 @@ class AbstractRichIterator(object):
                 return next(it.islice(self._it, index, None))
             except StopIteration:
                 raise IndexError('index out of range')
-        return self._wrap0(it.islice, index.start, index.stop, index.step)
+        return self._wrap(it.islice, self._it,
+                          index.start, index.stop, index.step)
 
     def __copy__(self):
         self._it, new_it = it.tee(self._it)
@@ -120,70 +121,67 @@ class AbstractRichIterator(object):
         return self.combinations_with_replacement(r)
 
     def cycle(self):
-        return self._wrap0(it.cycle)
+        return self._wrap(it.cycle, self._it)
 
     def accumulate(self, func=operator.add):
-        return self._wrap0(accumulate, func)
+        return self._wrap(accumulate, self._it, func)
 
     @property
     def chain(self):
         return RichIteratorChain(self)
 
     def compress(self, selectors):
-        return self._wrap0(it.compress, selectors)
+        return self._wrap(it.compress, self._it, selectors)
 
     def dropwhile(self, predicate):
-        return self._wrap1(it.dropwhile, predicate)
+        return self._wrap(it.dropwhile, predicate, self._it)
 
     def filter(self, predicate):
-        return self._wrap1(filter, predicate)
+        return self._wrap(filter, predicate, self._it)
 
     def filterfalse(self, predicate):
-        return self._wrap1(filterfalse, predicate)
+        return self._wrap(filterfalse, predicate, self._it)
 
     def groupby(self, key=None, sort=False):
         iterable = sorted(self._it, key=key) if sort else self._it
-        return self._from_iterator(it.groupby(iterable, key))
+        return self._wrap(it.groupby, iterable, key)
 
     def map(self, func, *iterables):
-        return self._wrap1(map, func, *iterables)
+        return self._wrap(map, func, self._it, *iterables)
 
     def starmap(self, func):
-        return self._wrap1(it.starmap, func)
+        return self._wrap(it.starmap, func, self._it)
 
     def takewhile(self, predicate):
-        return self._wrap1(it.takewhile, predicate)
+        return self._wrap(it.takewhile, predicate, self._it)
 
     def tee(self, n=2):
         return tuple(self.__class__(i) for i in it.tee(self._it, n))
 
     def zip(self, *iterables):
-        return self._wrap0(zip, *iterables)
+        return self._wrap(zip, self._it, *iterables)
 
     def zip_longest(self, *iterables, **kwargs):
-        return self._wrap0(zip_longest, *iterables, **kwargs)
+        return self._wrap(zip_longest, self._it, *iterables, **kwargs)
 
     def product(self, *iterables, **kwargs):
-        return self._wrap0(it.product, *iterables, **kwargs)
+        return self._wrap(it.product, self._it, *iterables, **kwargs)
 
     def permutations(self, r=None):
-        return self._wrap0(it.permutations, r)
+        return self._wrap(it.permutations, self._it, r)
 
     def combinations(self, r):
-        return self._wrap0(it.combinations, r)
+        return self._wrap(it.combinations, self._it, r)
 
     def combinations_with_replacement(self, r):
-        return self._wrap0(it.combinations_with_replacement, r)
-
-    def _wrap0(self, func, *args, **kwargs):
-        return self._from_iterator(func(self._it, *args, **kwargs))
-
-    def _wrap1(self, func, *args):
-        return self._from_iterator(func(args[0], self._it, *args[1:]))
+        return self._wrap(it.combinations_with_replacement, self._it, r)
 
     @abc.abstractmethod
-    def _from_iterator(self, iterator):
-        """Return a rich iterator from the given ``iterator``"""
+    def _wrap(self, func, *args, **kwargs):
+        """
+        Wrap the iterator returned by func(*args, **kwargs)
+        to an instance of this class
+        """
 
 
 class RichIteratorChain(object):
@@ -194,10 +192,10 @@ class RichIteratorChain(object):
         self._ri = rich_iter
 
     def __call__(self, *iterables):
-        return self._ri._wrap0(it.chain, *iterables)
+        return self._ri._wrap(it.chain, self._ri._it, *iterables)
 
     def from_iterable(self):
-        return self._ri._wrap0(it.chain.from_iterable)
+        return self._ri._wrap(it.chain.from_iterable, self._ri._it)
 
 
 @make_py2_compatible
@@ -239,26 +237,40 @@ class SharedRichIteratorMixin(object):
 
     __slots__ = ()
 
-    def _from_iterator(self, iterator):
-        return self.__class__(iterator)
+    def _wrap(self, func, *args, **kwargs):
+        return self.__class__(func(*args, **kwargs))
 
 
 class MutableRichIteratorMixin(object):
 
     __slots__ = ()
 
-    def _from_iterator(self, iterator):
-        self._it = iterator
+    def _wrap(self, func, *args, **kwargs):
+        self._it = func(*args, **kwargs)
         return self
+
+
+class ImmutableRichIteratorMixin(object):
+
+    __slots__ = ()
+
+    def _wrap(self, func, *args, **kwargs):
+        _it = self._it
+        _it_idx = 0 if args[0] is _it else 1 if args[1] is _it else None
+        if _it_idx is not None:
+            self._it, new_it = it.tee(_it)
+            args = list(args)
+            args[_it_idx] = new_it
+        return self.__class__(func(*args, **kwargs))
 
 
 class ExclusiveRichIteratorMixin(object):
 
     __slots__ = ()
 
-    def _from_iterator(self, iterator):
+    def _wrap(self, func, *args, **kwargs):
         self._it = RuntimeErrorIterator
-        return self.__class__(iterator)
+        return self.__class__(func(*args, **kwargs))
 
 
 class ExclusiveRewindableRichIterator(ExclusiveRichIteratorMixin,
@@ -289,6 +301,7 @@ def register_rich_iterator(name, state, rewindable):
     bases = (
         SharedRichIteratorMixin if state == 'shared' else
         MutableRichIteratorMixin if state == 'mutable' else
+        ImmutableRichIteratorMixin if state == 'immutable' else
         ExclusiveRichIteratorMixin if state == 'exclusive' else None,
         RewindableRichIterator if rewindable else AbstractRichIterator
     )
@@ -301,6 +314,8 @@ register_rich_iterator('SharedRichIterator', 'shared', False)
 register_rich_iterator('SharedRewindableRichIterator', 'shared', True)
 register_rich_iterator('MutableRichIterator', 'mutable', False)
 register_rich_iterator('MutableRewindableRichIterator', 'mutable', True)
+register_rich_iterator('ImmutableRichIterator', 'immutable', False)
+register_rich_iterator('ImmutableRewindableRichIterator', 'immutable', True)
 register_rich_iterator('ExclusiveRichIterator', 'exclusive', False)
 REGISTRY['exclusive', True] = ExclusiveRewindableRichIterator
 
