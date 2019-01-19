@@ -423,3 +423,13 @@ class ExclusiveRewindableRichIteratorTests(ExclusiveRichIteratorTests):
             self.assertEqual(list(ri2), [])
             ri2.rewind()
             self.assertEqual(list(ri2), [-1, -2, -3, -4, -5])
+
+
+class InvalidStateTest(unittest.TestCase):
+
+    def test_state(self):
+        for state in 'invalid', None, -1:
+            self.assertRaises(ValueError, rich_iter, range(10),
+                              rewindable=True, state=state)
+            self.assertRaises(ValueError, rich_iter, range(10),
+                              rewindable=False, state=state)

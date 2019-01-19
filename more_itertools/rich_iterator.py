@@ -308,7 +308,10 @@ REGISTRY['exclusive', True] = ExclusiveRewindableRichIterator
 class rich_iter(object):
 
     def __new__(cls, iterable, rewindable=False, state='shared'):
-        return REGISTRY[state, rewindable](iterable)
+        try:
+            return REGISTRY[state, rewindable](iterable)
+        except KeyError:
+            raise ValueError('Invalid state {!r}'.format(state))
 
     @classmethod
     def count(cls, start=0, step=1, rewindable=False, state='shared'):
